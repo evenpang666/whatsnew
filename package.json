@@ -27,6 +27,7 @@
     "tests",
     "cordis.patch.yml",
     "README.md",
+    "docs",
     "Start.command",
     "Start.bat",
     "start.sh",

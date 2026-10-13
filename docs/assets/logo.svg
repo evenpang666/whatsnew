@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="208" viewBox="0 0 720 208" role="img" aria-labelledby="title desc">
+  <title id="title">WhatsNew · GitHub 开源雷达</title>
+  <desc id="desc">浅绿色背景上的 WhatsNew 字标、带星芒的 w 图标与开源雷达轨道。</desc>
+  <defs>
+    <clipPath id="panel"><rect width="720" height="208" rx="32"/></clipPath>
+  </defs>
+  <rect x="1" y="1" width="718" height="206" rx="31" fill="#f6f7f3" stroke="#e8ece4" stroke-width="2"/>
+  <g clip-path="url(#panel)" fill="none" stroke="#dce6cd">
+    <circle cx="650" cy="104" r="114"/>
+    <circle cx="650" cy="104" r="82"/>
+    <circle cx="650" cy="104" r="50"/>
+    <path d="M650 104 692 62" stroke="#91ad61" stroke-width="2"/>
+    <circle cx="692" cy="62" r="5" fill="#91ad61" stroke="none"/>
+    <circle cx="605" cy="173" r="4" fill="#d0dfb4" stroke="none"/>
+  </g>
+  <rect x="56" y="56" width="96" height="96" rx="28" fill="#273c28"/>
+  <text x="75" y="124" fill="#e2f6b0" font-family="Georgia, 'Times New Roman', serif" font-size="75" font-weight="bold" font-style="italic">w</text>
+  <g transform="translate(132 74)" fill="none" stroke="#e2f6b0" stroke-width="2.5" stroke-linecap="round">
+    <path d="M0-11V11M-11 0H11M-7.8-7.8 7.8 7.8M-7.8 7.8 7.8-7.8"/>
+  </g>
+  <text x="184" y="117" fill="#232b24" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="64" font-weight="750" letter-spacing="-3">whatsnew<tspan fill="#799b4e">.</tspan></text>
+  <text x="188" y="149" fill="#6f7f61" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="600" letter-spacing="2.7">GITHUB OPEN SOURCE RADAR</text>
+</svg>
