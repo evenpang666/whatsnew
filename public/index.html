@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7f2">
+  <meta name="description" content="由 DeepSeek Harness 驱动的 GitHub 热门项目探索、智能分类与版本跟踪工具。">
+  <title>WhatsNew — 开源世界，值得探索</title>
+  <script src="/theme.js"></script><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
+</head>
+<body>
+<svg class="svg-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6ZM20 2v4m-2-2h4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-2l2 3M4 16l2 3a7 7 0 0 0 12-2"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 21v-4c-4 1-4-2-6-2m15 6v-4a4 4 0 0 0-1-3c3 0 5-2 5-5a6 6 0 0 0-2-4c0-1 0-2-1-3l-4 2a13 13 0 0 0-6 0L5 2c-1 1-1 2-1 3a6 6 0 0 0-2 4c0 3 2 5 5 5a4 4 0 0 0-1 3v4"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6m-5 0v7L4 19q-1 2 2 2h12q3 0 2-2l-6-9V3M7 15h10"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 7h4l2-3h6l2 3h4v13H3Z"/><circle cx="12" cy="13" r="4"/></symbol>
+  <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18h2q3-1 1-4-1-2 2-2h2q3 0 2-4a9 9 0 0 0-9-8Z"/><path d="M7 9h.1M12 6h.1M17 9h.1M6 14h.1"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-5 2 2-16"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5v16M3 3q6 0 9 3 3-3 9-3v16q-6 0-9 2-3-2-9-2Z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m14 2-10 12h7l-1 8L20 10h-7Z"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 13a9 9 0 0 1-10-10A9 9 0 1 0 21 13Z"/></symbol><symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+  <symbol id="i-fork" viewBox="0 0 24 24"><circle cx="6" cy="4" r="2"/><circle cx="18" cy="4" r="2"/><circle cx="12" cy="20" r="2"/><path d="M6 6v4q0 3 6 3 6 0 6-3V6m-6 7v5"/></symbol>
+</svg>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a href="/" class="brand" aria-label="WhatsNew 首页"><span class="brand-mark">w<span>✳</span></span><span>whatsnew<span class="brand-dot">.</span></span></a>
+    <div class="sidebar-caption">你的开源灵感站</div>
+    <div class="nav-label">工作空间</div>
+    <nav class="primary-nav" aria-label="工作空间">
+      <button class="nav-item active" data-view="explore" aria-label="探索发现"><svg><use href="#i-grid"/></svg><span>探索发现</span><span class="nav-counter" id="all-count">0</span></button>
+      <button class="nav-item" data-view="downloaded" aria-label="已下载"><svg><use href="#i-download"/></svg><span>已下载</span><span class="nav-counter" id="download-count">0</span></button>
+      <button class="nav-item" data-view="updates" aria-label="版本更新"><svg><use href="#i-refresh"/></svg><span>版本更新</span><span class="nav-counter" id="update-count">0</span></button>
+    </nav>
+    <div class="nav-label categories-label">按兴趣探索 <span>EXPLORE</span></div>
+    <nav id="categories" class="category-nav" aria-label="项目分类"></nav>
+    <div class="sidebar-bottom"><div class="engine-dot"></div><div><strong>由 DeepSeek Harness 驱动</strong><span>让每一次发现，都更有价值</span></div></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><div class="breadcrumb">工作空间 <span>/</span> <strong id="breadcrumb-title">探索发现</strong></div><div class="topbar-right"><span class="local-chip"><span></span>本地工作空间</span><button class="icon-button" id="theme-toggle" aria-label="切换到深色模式" title="切换到深色模式"><svg><use href="#i-moon"/></svg></button><button class="icon-button" id="help-button" aria-label="使用说明"><svg><use href="#i-book"/></svg></button><span class="avatar">W</span></div></header>
+    <main>
+      <div class="page-heading"><div><span class="eyebrow">GITHUB OPEN SOURCE RADAR</span><h1>发现下一个好项目<span class="heading-dot">.</span></h1><p>从热门开源中，找到属于你的灵感。</p></div><span class="top100-pill"><svg><use href="#i-github"/></svg>GITHUB TOP 100</span></div>
+      <p id="analysis-timestamp" class="cache-timestamp" hidden aria-live="polite"></p>
+      <section class="hero" aria-label="一键分析 GitHub 热门项目">
+        <div class="hero-copy"><div class="hero-label"><span class="tiny-star">✳</span> 好项目，不该被错过</div><h2>开源世界，<br>值得<span>探索。</span></h2><p>一键读懂 GitHub 热门项目。<br>智能简介、兴趣标签、版本动态，替你整理好了。</p><div class="hero-actions"><button class="button primary" id="analyze-button"><svg><use href="#i-spark"/></svg><span>一键分析</span><svg><use href="#i-arrow"/></svg></button><span id="analysis-cost" class="usage-note">100 个项目 · dsh 智能分析</span></div></div>
+        <div class="hero-art" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div><div class="art-center"><svg><use href="#i-github"/></svg></div><div class="floating-card float-one"><span class="art-icon">✳</span><span>发现新灵感<small>Ideas worth exploring</small></span></div><div class="floating-card float-two"><span class="float-star">★</span><span>让好项目被看见</span></div><div class="art-node node-one">&lt;/&gt;</div><div class="art-node node-two">✦</div><span class="art-plus">＋</span><span class="art-dot"></span><span class="art-caption">CURATED BY DSH / MADE FOR YOU</span></div>
+      </section>
+      <section class="network-panel" aria-label="局域网访问"><div><strong>在局域网其他设备上继续探索</strong><p id="network-address">正在获取本机 IP…</p></div></section>
+      <details class="github-settings"><summary>GitHub 访问配置 <span id="github-auth-status">未配置 Token</span></summary><p>可自行<a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer">申请 GitHub Token ↗</a>，提高 API 访问额度。保存到运行服务的电脑上的 <code>config/github.token</code>；也可直接在该文件中填写单行 Token，文件优先于环境变量。</p><form id="github-token-form"><input id="github-token-input" type="password" autocomplete="off" placeholder="粘贴 GitHub Token" aria-label="GitHub Token" maxlength="512"><button class="button secondary" type="submit">保存 Token</button><button class="text-button" type="button" id="remove-github-token">删除本地 Token</button></form><p id="github-token-message" aria-live="polite"></p></details>
+      <div id="demo-banner" class="notice demo-notice" hidden><svg><use href="#i-spark"/></svg><span>界面演示 · 示例项目用于体验交互，排名与统计并非实时 GitHub 数据。正式入口通过 dsh 分析真实前 100 项目。</span></div>
+      <section class="analysis-status" id="analysis-status" hidden aria-live="polite"><div><span class="status-indicator"></span><strong id="status-message"></strong><span id="status-number"></span><button class="text-button" id="cancel-button" hidden>暂停分析</button></div><progress id="analysis-progress" max="100" value="0"></progress><details id="error-details" hidden><summary>查看分析提示</summary><div id="errors"></div></details></section>
+      <section class="stats-strip" aria-label="项目概览"><div><span class="stat-icon green"><svg><use href="#i-grid"/></svg></span><div><strong id="stat-projects">—</strong><span>已分析项目</span></div></div><div><span class="stat-icon purple"><svg><use href="#i-palette"/></svg></span><div><strong id="stat-categories">—</strong><span>兴趣分类</span></div></div><div><span class="stat-icon amber"><svg><use href="#i-star"/></svg></span><div><strong id="stat-stars">—</strong><span>累计 Star</span></div></div><div><span class="stat-icon blue"><svg><use href="#i-refresh"/></svg></span><div><strong id="stat-time">尚未分析</strong><span>最近分析</span></div></div></section>
+<div class="display-controls" id="display-controls" hidden><div class="quick-tabs" id="display-modes"><button data-display-mode="stars" class="selected">累计 Star</button><button data-display-mode="growth">Star 上升趋势</button></div><span>同一次分析结果 · 切换查看</span><label>增星周期<select id="display-period"><option value="week" selected>周 · 完整 7 天</option><option value="month">月 · 完整 30 天</option></select></label></div>
+      <section class="overview-panel" id="overview-panel" hidden aria-label="排序结果总览"><div class="overview-heading"><div><span class="eyebrow">THE OPEN SOURCE LANDSCAPE</span><h2>榜单全景<span>读懂热度与方向</span></h2><p id="overview-scope"></p></div><div><button class="text-button" id="cancel-ranking" hidden>停止采集</button><button class="text-button" id="refresh-ranking">重新采集历史</button></div></div><p id="ranking-status" aria-live="polite"></p><div class="overview-grid"><section class="overview-trend"><div class="comparison-heading"><h3>项目 Star 趋势 <small>每日新增 · 每项目一条线</small></h3><div class="quick-tabs" id="chart-periods" aria-label="趋势图时间范围"><button data-chart-period="week" class="selected">周</button><button data-chart-period="month">月</button></div></div><div class="chart-zoom-controls" aria-label="趋势图缩放"><button class="text-button" id="chart-zoom-in" aria-label="放大趋势图">＋ 放大</button><button class="text-button" id="chart-zoom-out" aria-label="缩小趋势图">－ 缩小</button><button class="text-button" id="chart-zoom-reset">复位</button><span id="chart-zoom-label">1×</span><small>放大后拖动平移 · Ctrl/⌘＋滚轮或双指缩放</small></div><div id="overview-trend"></div><div class="comparison-legend-heading"><span>点击项目聚焦比较，纵轴随所选项目调整</span><button class="text-button" id="clear-chart-focus">显示全部</button></div><div id="comparison-legend" class="comparison-legend"></div></section><section><h3>累计 Star 分布 <small>项目数量直方图</small></h3><div id="overview-histogram"></div></section><section><h3>类型占比 <small>dsh 主要用途分类</small></h3><div id="overview-pie"></div></section></div><p class="overview-note" id="overview-note"></p></section>
+      <section class="inspiration-panel" id="inspiration-panel" aria-label="灵感乍现"><div class="inspiration-heading"><div><span class="eyebrow">A SPARK FROM 100 PROJECTS</span><h2><span>✦</span> 灵感乍现</h2><p>从热门项目的能力与需求中，寻找下一个值得做的作品。</p></div><div class="inspiration-trigger"><button class="button secondary" id="inspire-button" disabled>✦ 灵感乍现</button><button class="button secondary" id="inspire-swap" hidden>↻ 换一换</button><small id="inspiration-cost" class="usage-note"></small></div></div><p id="inspiration-run-status" class="idea-run-status" hidden aria-live="polite"></p><div id="inspiration-content" aria-live="polite"></div></section>
+      <section class="catalog"><div class="catalog-heading"><div><h2 id="catalog-title">热门项目<span id="result-count">0</span></h2><p id="catalog-subtitle">按 GitHub Star 总数排序，发现被世界认可的好工具</p></div><button class="text-button" id="check-updates"><svg><use href="#i-refresh"/></svg>检查更新</button></div>
+
+        <div class="toolbar"><div class="quick-tabs" id="quick-tabs"><button class="selected" data-filter="all">全部项目</button><button data-filter="ai">人工智能</button><button data-filter="research">科研学术</button><button data-filter="design">艺术设计</button></div><div class="filter-controls"><label class="search-box"><svg><use href="#i-search"/></svg><input id="search-input" type="search" placeholder="搜索项目、标签…" aria-label="搜索项目或标签"></label><label class="sort-control"><select id="sort-select" aria-label="项目排序"><option value="stars">Star 最多</option><option value="growth">所选时段增星</option><option value="updated">最近活跃</option><option value="name">名称 A–Z</option></select></label></div></div>
+        <div class="local-directory">默认下载目录 <code id="download-path"></code><span>ZIP 与 Git 项目都保存在运行此服务的电脑上</span></div><p id="local-status" class="notice" hidden aria-live="polite"></p>
+        <div class="active-filter" id="active-filter" hidden><span id="filter-label"></span><button id="clear-filter" aria-label="清除标签筛选"><svg><use href="#i-close"/></svg></button></div>
+        <div class="project-grid" id="project-grid" aria-live="polite"></div>
+        <nav id="catalog-pagination" class="catalog-pagination" aria-label="热门项目分页" hidden><span id="pagination-status"></span><div id="pagination-buttons"></div></nav>
+        <div class="empty-state" id="empty-state"><span class="empty-icon"><svg><use href="#i-spark"/></svg></span><h3 id="empty-title">你的下一次发现，从这里开始</h3><p id="empty-description">点击「一键分析」，让 dsh 为你读懂 GitHub 热门前 100 项目。</p><button class="button secondary" id="empty-action">开始探索<svg><use href="#i-arrow"/></svg></button></div>
+        <div class="catalog-footer"><span><span class="footer-dot"></span><span id="footer-status">等待首次分析</span></span><span>保持好奇，持续探索 <svg><use href="#i-arrow"/></svg></span></div>
+      </section>
+      <footer class="page-footer"><span>whatsnew. <span>开源不止代码，还有无限可能。</span></span><span>Built with dsh <span>✳</span></span></footer>
+    </main>
+  </div>
+</div>
+<dialog id="project-dialog" aria-labelledby="detail-name"><div class="dialog-header"><span class="eyebrow">PROJECT DETAILS</span><button class="icon-button" id="close-dialog" aria-label="关闭项目详情"><svg><use href="#i-close"/></svg></button></div><div id="detail-content"></div></dialog>
+<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-header"><span class="eyebrow">A LITTLE GUIDE</span><button class="icon-button" id="close-help" aria-label="关闭使用说明"><svg><use href="#i-close"/></svg></button></div><h2 id="help-title">探索开源，只需一步。</h2><ol class="help-list"><li>点击「一键分析」，同时准备累计热度与增星数据，dsh 会读取 GitHub Star 总数前 100 仓库，并根据描述、Topics 和 README 分析。</li><li>按兴趣分类或标签筛选；点开卡片查看真实 Star、Fork、Release 下载量与最近提交。</li><li>「下载 ZIP」保存源码压缩包，「克隆项目」保存 Git 工作目录；两者都在 downloads 目录中，以实际文件标注已下载。</li><li>「检查更新」扫描默认目录，也会分析榜单外的 Git 项目。GitHub 项目可下载最新 ZIP 或快进拉取；非 GitHub 本地项目仅分析。</li></ol><p class="help-note">手机与本机连接同一个局域网，打开上方 URL，即可访问和操作。周／月增星排序范围是累计 Star 前 100，统计完整过去 7／30 天新增 Star，并非净增长。初次分析需要网络连接和已配置模型的 dsh。已有分析会自动从本地缓存恢复，顶部标注上次分析时间。可在「GitHub 访问配置」中申请并保存 Token 到 config/github.token，该文件优先于 GITHUB_TOKEN。灵感可通过「换一换」生成新的构想，并保存生成时间。下载量仅包含公开 Release 附件，GitHub 不提供源码总下载量。Token 按 dsh 实際返回的用量汇总；费用单位 USD，参考 <a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noopener noreferrer">DeepSeek 官方模型价格</a>估算（2026-10-13 核验），未知模型可配置单价，缺少报价时不会当作免费。</p></dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+</body></html>

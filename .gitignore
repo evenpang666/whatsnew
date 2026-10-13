@@ -1,0 +1,18 @@
+.runtime/
+downloads/
+generated-projects/
+node_modules/
+*.tgz
+.env
+screenshots/
+config/github.token
+config/github.token.*.tmp
+
+# Local project packages and source archives
+*.zip
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.7z
+*.rar

@@ -1,0 +1,46 @@
+{
+  "name": "dsh-whatsnew",
+  "version": "0.6.1",
+  "description": "GitHub Top 100 discovery, analysis and downloads for DeepSeek Harness",
+  "type": "module",
+  "main": "src/plugin.js",
+  "exports": {
+    ".": "./src/plugin.js",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "bin": {
+    "whatsnew": "scripts/launch.mjs"
+  },
+  "scripts": {
+    "start": "node scripts/launch.mjs",
+    "demo": "node scripts/demo.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "src",
+    "public",
+    "scripts",
+    "tests",
+    "cordis.patch.yml",
+    "README.md",
+    "Start.command",
+    "Start.bat",
+    "start.sh",
+    "skills"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "github",
+    "deepseek-harness"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

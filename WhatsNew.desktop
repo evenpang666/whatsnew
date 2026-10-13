@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=WhatsNew 开源雷达
+Comment=发现 GitHub 最热门的 100 个项目
+Exec=bash "/home/evan/projects/whatsnew/start.sh"
+Terminal=true
+Icon=applications-internet
+Categories=Network;Development;

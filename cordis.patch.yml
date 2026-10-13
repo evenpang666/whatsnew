@@ -1,0 +1,5 @@
+- insert:
+    - id: whatsnew
+      name: dsh-whatsnew
+      config:
+        port: 3210
