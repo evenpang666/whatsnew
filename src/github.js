@@ -1,4 +1,5 @@
 import { GitHubToken } from './github-token.js';
+import { hasCumulativeHistory } from './star-history.js';
 export const CATEGORIES = ['人工智能', '开发工具', '科研学术', '摄影影像', '艺术设计', '学习资源', '效率工具', '其他'];
 export class GitHubClient {
   constructor({ root = process.cwd(), token = process.env.GITHUB_TOKEN, fetcher = fetch } = {}) {
@@ -78,16 +79,24 @@ export class GitHubClient {
       checkedAt: new Date().toISOString()
     };
   }
-  async starHistory(repo, days = 90, signal, now = new Date()) {
+  async starHistory(repo, days = 90, signal, now = new Date(), { previous } = {}) {
     if (![30, 90, 180, 365, 'all'].includes(days)) throw new Error('历史查询范围支持 30、90、180、365 天或完整生命周期。');
     const end = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
     const lifecycle = days === 'all';
-    let createdAt = repo.createdAt;
+    let createdAt = repo.createdAt || (hasCumulativeHistory(previous) ? previous.createdAt : undefined);
     if (lifecycle && !createdAt) createdAt = (await this.repository(repo.id, signal)).createdAt;
     const created = Date.parse(String(createdAt || '').slice(0,10));
     if (lifecycle && (!Number.isFinite(created) || created > end)) throw new Error('无法确定项目创建日期，请稍后重试。');
     const start = lifecycle ? created : end - (days - 1) * 86400000;
+    // Recheck a full month of overlap, including the formerly unfinished day.
+    // A long absence fetches all intervening pages before joining the prefix.
+    const incremental = lifecycle && hasCumulativeHistory(previous) && previous.cumulative.from === new Date(start).toISOString().slice(0,10) && Date.parse(previous.to) <= end;
+    const updateStart = incremental ? Math.max(start, Date.parse(previous.to) - 30 * 86400000) : start;
     const points = new Map();
+    if (incremental) for (const point of previous.points) {
+      const time = Date.parse(point.date);
+      if (time >= start && time < updateStart) points.set(time, point);
+    }
     // GitHub returns newest weeks first, max 30 weeks per page.
     // Fetch until the earliest requested day is covered, not a fixed page count.
     for (let page = 1; page <= 100; page++) {
@@ -101,10 +110,10 @@ export class GitHubClient {
           const time = week + i * 86400000;
           // Preserve the source calendar-day label; do not shift to local time.
           const day = Date.parse(new Date(time).toISOString().slice(0, 10));
-          if (day >= start && day <= end) points.set(day, { date: new Date(day).toISOString().slice(0, 10), stars });
+          if (day >= updateStart && day <= end) points.set(day, { date: new Date(day).toISOString().slice(0, 10), stars });
         });
       }
-      if (rows.length < 30 || earliest <= start) break;
+      if (rows.length < 30 || earliest <= updateStart) break;
       if (page === 100) throw new Error('GitHub 未返回完整请求时段的 Star 历史，请稍后重试。');
     }
     return {
@@ -112,6 +121,7 @@ export class GitHubClient {
       days, createdAt: lifecycle ? createdAt : repo.createdAt, metric: 'daily-new-stars', source: 'GitHub 官方 Star 历史',
       sourceUrl: 'https://docs.github.com/en/rest/activity/starring#get-repository-star-history',
       from: new Date(start).toISOString().slice(0, 10), to: new Date(end).toISOString().slice(0, 10),
+      ...(incremental ? { updatedFrom:new Date(updateStart).toISOString().slice(0,10) } : {}),
       fetchedAt: now.toISOString(),
       note: '按 GitHub 历史接口统计每天创建的 Star，不代表每日净增长或当日累计 Star；当天数据尚未结束，日界限沿用 GitHub。'
     };

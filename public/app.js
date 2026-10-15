@@ -15,17 +15,21 @@ const PAGE_SIZE = 9;
 const pendingOperations = new Map(), clientErrors = new Map();
 let chartWindow, zoomState = null, zoomPeriod = '', comparisonContext = null;
 import('/chart-window.js').then(module => { chartWindow = module; overviewKey = ''; renderOverview(); }).catch(() => toast('图表缩放组件加载失败，请刷新页面。'));
-let inspirationRequested = false; const focusedSeries = new Set();
+let inspirationRequested = false, chartMetric = 'growth'; const focusedSeries = new Set();
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 6500); }
 async function api(path, options = {}) {
   const response = await fetch(path, { ...options, headers: { ...(state.token ? { 'X-WhatsNew-Token': state.token } : {}), ...options.headers } });
   const data = await response.json(); if (!response.ok) throw new Error(data.error || '请求失败，请重试。'); return data;
 }
 function applyView(next) {
+  overviewKey = '';
   view = next; category = ''; tag = ''; search = ''; $('search-input').value = '';
   document.querySelectorAll('[data-view]').forEach(b => { b.classList.toggle('active', b.dataset.view === view); b.setAttribute('aria-current', b.dataset.view === view ? 'page' : 'false'); });
-  const title = { explore: '探索发现', downloaded: '已下载', updates: '版本更新' }[view];
+  const title = { explore: '探索发现', downloaded: '已下载', updates: '版本更新', settings: '设置' }[view];
   $('breadcrumb-title').textContent = title;
+  $('settings-page').hidden = view !== 'settings';
+  $('discovery-page').hidden = view === 'settings';
+  if (view === 'settings') { render(); return; }
   $('catalog-title').firstChild.textContent = { explore: '热门项目', downloaded: '我的下载', updates: '新版本动态' }[view];
   $('catalog-subtitle').textContent = { explore: '按 GitHub Star 总数排序，发现被世界认可的好工具', downloaded: '源码已保存到本地，随时回来继续探索', updates: '比较已下载版本，查看 Release 简介与最近提交' }[view];
   render();
@@ -57,6 +61,11 @@ function render() {
   $('github-auth-status').textContent = auth?.error || (auth?.enabled ? `已启用 · ${auth.source}` : '未配置 Token · 匿名访问');
   $('remove-github-token').disabled = auth?.source !== 'config/github.token';
   $('github-token-form').hidden = state.demo;
+  const deepseek = state.deepseekAuth;
+  $('deepseek-auth-status').textContent = deepseek?.error || (deepseek?.enabled ? `已启用 · ${deepseek.source}` : '未配置独立 Token · 使用 dsh 模型配置');
+  $('remove-deepseek-token').disabled = deepseek?.source !== 'config/deepseek.token';
+  $('deepseek-token-form').hidden = state.demo;
+  $('settings-demo-note').hidden = !state.demo;
   $('demo-banner').hidden = !state.demo;
   $('categories').innerHTML = Object.entries(categoryMeta).map(([name, [glyph]]) => `<button class="category-button ${category === name ? 'selected' : ''}" data-category="${escape(name)}" aria-label="${escape(name)}" aria-pressed="${category === name}">${icon(glyph)}<span>${escape(name)}</span><span>${revealed ? state.repos.filter(r => r.category === name).length : 0}</span></button>`).join('');
   const filters = { all: '', ai: '人工智能', research: '科研学术', design: '艺术设计' };
@@ -287,7 +296,7 @@ async function checkUpdates() {
   catch (e) { toast(e.message); } finally { button.disabled = false; }
 }
 document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => applyView(b.dataset.view));
-$('categories').onclick = e => { const b = e.target.closest('[data-category]'); if (b) { category = category === b.dataset.category ? '' : b.dataset.category; tag = ''; render(); } };
+$('categories').onclick = e => { const b = e.target.closest('[data-category]'); if (b) { if(view === 'settings') applyView('explore'); category = category === b.dataset.category ? '' : b.dataset.category; tag = ''; render(); } };
 $('quick-tabs').onclick = e => { const b = e.target.closest('[data-filter]'); if (b) { category = { all: '', ai: '人工智能', research: '科研学术', design: '艺术设计' }[b.dataset.filter]; tag = ''; render(); } };
 document.body.addEventListener('click', async e => {
   if (e.target.closest('[data-cancel-generation]')) { try { await api('/api/cancel', {method:'POST'}); await refresh(); } catch(error) { toast(error.message); } return; }
@@ -305,9 +314,25 @@ $('sort-select').onchange = e => { sort = e.target.value; if (['stars', 'growth'
 $('display-modes').onclick = e => { const b = e.target.closest('[data-display-mode]'); if (b) { rankingMode = b.dataset.displayMode; sort = rankingMode; $('sort-select').value = sort; render(); } };
 $('display-period').onchange = e => { rankingPeriod = e.target.value; render(); };
 $('chart-periods').onclick = e => { const b = e.target.closest('[data-chart-period]'); if (b) { rankingPeriod = b.dataset.chartPeriod; render(); } };
+$('chart-metrics').onclick = e => { const b = e.target.closest('[data-chart-metric]'); if (b && chartMetric !== b.dataset.chartMetric) { chartMetric = b.dataset.chartMetric; overviewKey = ''; renderOverview(); if(chartMetric === 'total') updateRanking(); } };
 $('inspire-button').onclick = inspire; $('inspire-swap').onclick = inspire;
-$('github-token-form').onsubmit = async e => { e.preventDefault(); const input=$('github-token-input'), button=e.submitter; if(button)button.disabled=true; try { await api('/api/github-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:input.value})});input.value='';$('github-token-message').textContent='Token 已保存到 config/github.token，后续请求优先使用。';await refresh(); } catch(error){$('github-token-message').textContent=error.message;}finally{if(button)button.disabled=false;} };
-$('remove-github-token').onclick = async () => { try { await api('/api/github-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({remove:true})});$('github-token-message').textContent='本地 Token 已删除。';await refresh(); }catch(error){$('github-token-message').textContent=error.message;} };
+for (const provider of ['github', 'deepseek']) {
+  const form = $(`${provider}-token-form`), input = $(`${provider}-token-input`), remove = $(`remove-${provider}-token`), message = $(`${provider}-token-message`);
+  let busy = false;
+  const save = async deleting => {
+    if (busy) return; busy = true;
+    for (const button of form.querySelectorAll('button')) button.disabled = true;
+    try {
+      const auth = await api(`/api/${provider}-token`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(deleting ? {remove:true} : {token:input.value}) });
+      state[`${provider}Auth`] = auth; input.value = '';
+      message.textContent = deleting ? '本地 Token 已删除。' : 'Token 已保存，后续调用优先使用。';
+      await refresh();
+    } catch (error) { message.textContent = error.message; }
+    finally { busy = false; for (const button of form.querySelectorAll('button')) button.disabled = false; remove.disabled = state[`${provider}Auth`]?.source !== `config/${provider}.token`; }
+  };
+  form.onsubmit = e => { e.preventDefault(); save(false); };
+  remove.onclick = () => save(true);
+}
 $('comparison-legend').onclick = e => { const b = e.target.closest('[data-series-id]'); if (!b) return; const id = b.dataset.seriesId; focusedSeries.has(id) ? focusedSeries.delete(id) : focusedSeries.add(id); overviewKey = ''; renderOverview(); };
 $('clear-chart-focus').onclick = () => { focusedSeries.clear(); overviewKey = ''; renderOverview(); };
 $('refresh-ranking').onclick = () => updateRanking(true);
@@ -357,8 +382,7 @@ async function projectAction(id, action) {
 async function updateRanking(force = false) {
   if (!revealed) { render(); return; }
   try {
-    // Only the explicit recollect action performs network work.
-    await api(`/api/ranking?refresh=${force ? 1 : 0}`, { method: 'POST' });
+    await api(`/api/ranking?refresh=${force ? 1 : 0}&mode=${rankingMode}&period=${rankingPeriod}&metric=${chartMetric}`, { method: 'POST' });
     await refresh();
   } catch (error) { toast(error.message); }
 }
@@ -375,18 +399,20 @@ function renderOverview() {
   const overview = state.overviews?.[rankingPeriod] || state.overview; $('overview-panel').hidden = !revealed || !overview?.total;
   if (!revealed || !overview?.total) return;
   if (zoomPeriod !== rankingPeriod) { zoomState = null; zoomPeriod = rankingPeriod; }
-  const key = JSON.stringify([overview, state.rankingJob, state.demo, rankingMode, [...focusedSeries], zoomState, window.WhatsNewTheme.get()]); if (overviewKey === key) return; overviewKey = key;
-  $('overview-scope').textContent = `${overview.scope} · ${rankingMode === 'growth' ? '按新增 Star 排序' : '按累计 Star 排序'} · ${overview.from} 至 ${overview.to}`;
+  const key = JSON.stringify([overview, state.rankingJob, state.demo, chartMetric, [...focusedSeries], zoomState, window.WhatsNewTheme.get()]); if (overviewKey === key) return; overviewKey = key;
+  $('overview-scope').textContent = `${overview.scope} · ${chartMetric === 'growth' ? '按所选时段新增 Star 排序' : '按累计 Star 排序'} · ${overview.from} 至 ${overview.to}`;
   $('ranking-status').textContent = state.rankingJob?.message || '准备采集官方历史…';
   $('refresh-ranking').disabled = state.rankingJob?.status === 'running';
   $('cancel-ranking').hidden = state.rankingJob?.status !== 'running';
   document.querySelectorAll('[data-chart-period]').forEach(b => { b.classList.toggle('selected', b.dataset.chartPeriod === rankingPeriod); b.setAttribute('aria-pressed', b.dataset.chartPeriod === rankingPeriod); });
-  const series = [...(overview.projectTrends || [])].sort((a,b) => rankingMode === 'growth' ? (b.growth ?? -1) - (a.growth ?? -1) || (b.stars || 0) - (a.stars || 0) : (b.stars || 0) - (a.stars || 0));
+  document.querySelectorAll('[data-chart-metric]').forEach(b => { b.classList.toggle('selected', b.dataset.chartMetric === chartMetric); b.setAttribute('aria-pressed', b.dataset.chartMetric === chartMetric); });
+  const series = (overview.projectTrends || []).map(r => ({...r, points: chartMetric === 'total' ? r.totalPoints || r.points.map(p => ({date:p.date,stars:null})) : r.points})).sort((a,b) => chartMetric === 'growth' ? (b.growth ?? -1) - (a.growth ?? -1) || (b.stars || 0) - (a.stars || 0) : (b.stars || 0) - (a.stars || 0));
   $('overview-trend').innerHTML = comparisonChart(series, $('overview-trend').clientWidth);
-  $('comparison-legend').innerHTML = series.map((r,i) => `<button data-series-id="${escape(r.id)}" class="series-item ${focusedSeries.has(r.id) ? 'focused' : ''}" aria-pressed="${focusedSeries.has(r.id)}"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="${seriesColor(r.id)}"/></svg><span>${rankingMode === 'growth' && r.growth == null ? '—' : i+1}. ${escape(r.id)}</span><small>${r.growth == null ? '历史不全' : '+'+number(r.growth)}</small></button>`).join('');
+  $('comparison-legend').innerHTML = series.map((r,i) => `<button data-series-id="${escape(r.id)}" class="series-item ${focusedSeries.has(r.id) ? 'focused' : ''}" aria-pressed="${focusedSeries.has(r.id)}" title="${chartMetric === 'total' ? '当前累计 Star' : '所选时段新增 Star'}${r.points.every(p=>p.stars==null) ? ' · 暂无曲线' : ''}"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="${seriesColor(r.id)}"/></svg><span>${chartMetric === 'growth' && r.growth == null ? '—' : i+1}. ${escape(r.id)}</span><small>${chartMetric === 'total' ? number(r.stars) : r.growth == null ? '历史不全' : '+'+number(r.growth)}${chartMetric === 'total' && r.points.every(p=>p.stars==null) ? ' · 暂无曲线' : ''}</small></button>`).join('');
   $('overview-histogram').innerHTML = histogramChart(overview.histogram);
   $('overview-pie').innerHTML = pieChart(overview.categories);
-  $('overview-note').textContent = `${state.demo ? '演示统计，非真实榜单。' : overview.source + '。'}增星历史完整覆盖 ${overview.covered}/${overview.total} 项目${overview.complete ? '' : '；当前增星排名仅代表可用数据，缺失项目置于末尾；曲线在缺失日断开'}。每个榜单项目一条每日新增 Star 曲线，共 ${overview.total} 条；完整过去 7／30 天，排除今天，不代表净增长或历史累计量。直方图和类型占比覆盖全部 ${overview.total} 个榜单项目，不含目录中的额外项目。`;
+  const metricNote = chartMetric === 'total' ? `累计历史完整覆盖 ${overview.cumulativeCovered || 0}/${overview.total} 项目。曲线从创建日起累加每日获星，与卡片详情口径一致，不代表每日净 Star 存量；下方项目按当前累计 Star 排序。` : `增星历史完整覆盖 ${overview.covered}/${overview.total} 项目；按所选时段新增 Star 排序，历史缺失项置于末尾。曲线表示每日新增，不代表净增长。`;
+  $('overview-note').textContent = `${state.demo ? '演示统计，非真实榜单。' : overview.source + '。'}${metricNote}显示完整过去 ${rankingPeriod === 'week' ? 7 : 30} 天，排除今天；缺失数据不绘制曲线。直方图和类型占比覆盖全部 ${overview.total} 个榜单项目，不含目录中的额外项目。`;
 }
 
 window.addEventListener('resize', () => { overviewKey = ''; renderOverview(); });
@@ -423,10 +449,10 @@ function comparisonChart(series, width = 600) {
     const chunks=[];let chunk=[];
     r.points.forEach((p,i)=>{if(p.stars==null){if(chunk.length)chunks.push(chunk);chunk=[];}else chunk.push([x(i),y(p.stars),p]);});if(chunk.length)chunks.push(chunk);
     const focus=focusedSeries.has(r.id), opacity=focusedSeries.size?(focus?1:.055):.36;
-    return `<g data-chart-line="${escape(r.id)}" class="comparison-line" stroke="${seriesColor(r.id)}" opacity="${opacity}" stroke-width="${focus?2.8:1.4}" fill="none"><title>${escape(r.id)} · 时段新增 ${r.growth==null?'未知':r.growth.toLocaleString('zh-CN')} Star</title>${chunks.map(c=>c.length===1?`<circle cx="${c[0][0]}" cy="${c[0][1]}" r="${focus?4:2.6}" fill="${seriesColor(r.id)}"/>`:`<polyline points="${c.map(p=>p.slice(0,2).join(',')).join(' ')}"/>`).join('')}</g>`;
+    return `<g data-chart-line="${escape(r.id)}" class="comparison-line" stroke="${seriesColor(r.id)}" opacity="${opacity}" stroke-width="${focus?2.8:1.4}" fill="none"><title>${escape(r.id)} · ${chartMetric === 'total' ? '当前累计 ' + number(r.stars) : '时段新增 ' + (r.growth==null?'未知':r.growth.toLocaleString('zh-CN'))} Star</title>${chunks.map(c=>c.length===1?`<circle cx="${c[0][0]}" cy="${c[0][1]}" r="${focus?4:2.6}" fill="${seriesColor(r.id)}"/>`:`<polyline points="${c.map(p=>p.slice(0,2).join(',')).join(' ')}"/>`).join('')}</g>`;
   }).join('');
   // Focused lines are drawn last while all 100 project groups remain present.
-  const content=`<svg id="comparison-svg" class="comparison-chart" tabindex="0" viewBox="0 0 ${width} 208" role="img" aria-label="${series.length} 个项目的每日新增 Star，${available.length} 个项目有可用数据"><defs><clipPath id="comparison-plot"><rect x="${left-5}" y="18" width="${right-left+10}" height="155"/></clipPath></defs><path d="M${left} 28H${right}M${left} 98H${right}M${left} 168H${right}" stroke="#e2e8d9" fill="none"/><text x="${left-8}" y="31" text-anchor="end">${number(max)}</text><text x="${left-8}" y="101" text-anchor="end">${number(Math.round(max/2))}</text><text x="${left-8}" y="171" text-anchor="end">0</text><g clip-path="url(#comparison-plot)">${paths}${series.filter(r=>focusedSeries.has(r.id)).map(r=>{ const chunks=[];let path='';r.points.forEach((p,i)=>{if(p.stars==null){if(path)chunks.push(path);path='';}else path+=(path?'L':'M')+x(i)+','+y(p.stars);});if(path)chunks.push(path);return chunks.map(d=>`<path d="${d}" stroke="${seriesColor(r.id)}" stroke-width="2.8" fill="none" pointer-events="none"/>`).join('');}).join('')}</g>${[...new Set(ticks)].map(i=>`<text x="${x(i)}" y="194" text-anchor="${i===start?'start':i===end?'end':'middle'}">${escape(series[0].points[i].date.slice(5))}</text>`).join('')}</svg><p id="comparison-tooltip" class="comparison-tooltip" hidden></p>`;
+  const content=`<svg id="comparison-svg" class="comparison-chart" tabindex="0" viewBox="0 0 ${width} 208" role="img" aria-label="${series.length} 个项目的${chartMetric === 'total' ? '每日累计获星' : '每日新增 Star'}，${available.length} 个项目有可用数据"><defs><clipPath id="comparison-plot"><rect x="${left-5}" y="18" width="${right-left+10}" height="155"/></clipPath></defs><path d="M${left} 28H${right}M${left} 98H${right}M${left} 168H${right}" stroke="#e2e8d9" fill="none"/><text x="${left-8}" y="31" text-anchor="end">${number(max)}</text><text x="${left-8}" y="101" text-anchor="end">${number(Math.round(max/2))}</text><text x="${left-8}" y="171" text-anchor="end">0</text><g clip-path="url(#comparison-plot)">${paths}${series.filter(r=>focusedSeries.has(r.id)).map(r=>{ const chunks=[];let path='';r.points.forEach((p,i)=>{if(p.stars==null){if(path)chunks.push(path);path='';}else path+=(path?'L':'M')+x(i)+','+y(p.stars);});if(path)chunks.push(path);return chunks.map(d=>`<path d="${d}" stroke="${seriesColor(r.id)}" stroke-width="2.8" fill="none" pointer-events="none"/>`).join('');}).join('')}</g>${[...new Set(ticks)].map(i=>`<text x="${x(i)}" y="194" text-anchor="${i===start?'start':i===end?'end':'middle'}">${escape(series[0].points[i].date.slice(5))}</text>`).join('')}</svg><p id="comparison-tooltip" class="comparison-tooltip" hidden></p>`;
   return content;
 }
 function changeZoom(factor, anchor = .5) {
@@ -454,7 +480,7 @@ function inspectChart(e) {
   const candidates = c.available.filter(r => (!focusedSeries.size || focusedSeries.has(r.id)) && r.points[index].stars != null);
   candidates.sort((a,b) => Math.abs(c.y(a.points[index].stars)-position.py)-Math.abs(c.y(b.points[index].stars)-position.py));
   const repo = candidates[0]; output.hidden = !repo || Math.abs(c.y(repo.points[index].stars)-position.py)>25;
-  if (!output.hidden) output.textContent = `${repo.id} · ${repo.points[index].date} · 新增 ${repo.points[index].stars.toLocaleString('zh-CN')} Star`;
+  if (!output.hidden) output.textContent = `${repo.id} · ${repo.points[index].date} · ${chartMetric === 'total' ? '累计获星' : '新增'} ${repo.points[index].stars.toLocaleString('zh-CN')} Star`;
 }
 chartSurface.addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey) || !e.target.closest('#comparison-svg')) return;

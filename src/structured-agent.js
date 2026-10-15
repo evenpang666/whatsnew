@@ -3,10 +3,10 @@ import { readFile } from 'node:fs/promises';
 import { collectUsage } from './usage.js';
 import { IncompleteSubmissionError } from './contracts.js';
 
-export async function runStructuredAgent(ctx, { skill, prompt, tools, complete, missing, signal, maxTokens = 10000, timeoutMs = 240000, onUsage = async () => {}, pricing }) {
+export async function runStructuredAgent(ctx, { skill, prompt, tools, complete, missing, signal, maxTokens = 10000, timeoutMs = 240000, onUsage = async () => {}, pricing, modelSelection }) {
   await ctx.get('loader')?.await(); signal.throwIfAborted();
   const instructions = await readFile(new URL(`../skills/${skill}/SKILL.md`, import.meta.url), 'utf8');
-  const selection = ctx.agentDefaultModel.currentSelection();
+  const selection = modelSelection ? await modelSelection() : ctx.agentDefaultModel.currentSelection();
   const handle = await ctx.agents.create({ sessionId: `whatsnew-${skill}-${randomUUID()}`, meta: { cwd: process.cwd() }, agentOptions: { ...selection, maxTokens }, signal,
     setup(agentCtx) {
       agentCtx.tools.restrict({ allow: [] }); agentCtx.tools.presentAs('native');

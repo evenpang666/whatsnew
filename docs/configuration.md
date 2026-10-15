@@ -4,7 +4,7 @@
 
 ## 可选配置
 
-- `config/github.token`：优先使用运行服务的数据目录下的这个文件。填写单行 GitHub Token；也可通过页面「GitHub 访问配置」中的 [GitHub Token 管理链接](https://github.com/settings/tokens) 和保存按钮配置，支持删除。保存使用文件权限 `0600`，后续请求立即读取，无需重启；状态接口只显示是否配置和来源，不返回密钥；此文件排除在源码和插件包之外。
+- `config/github.token`：优先使用运行服务的数据目录下的这个文件。填写单行 GitHub Token；也可通过页面「设置」中的 [GitHub Token 管理链接](https://github.com/settings/tokens) 和保存按钮配置，支持删除。保存使用文件权限 `0600`，后续请求立即读取，无需重启；状态接口只显示是否配置和来源，不返回密钥；此文件排除在源码和插件包之外。
 - `GITHUB_TOKEN`：本地 Token 文件不存在时使用的环境变量。文件为空或无效时明确提示修正，不静默切换其他身份。建议仅授予读取公开仓库所需的权限。
 - `WHATSNEW_PORT`：独立启动器端口，默认 `3210`。
 - `DSH_HOME`：现有 dsh 配置目录，默认 `~/.dsh`。
@@ -45,3 +45,9 @@
 ```
 
 以上费率保留原文的核验日期；运行时的估算实现见 `src/usage.js`，配置价格时请按实际平台账单填写。
+
+## 独立 DeepSeek API Token
+
+在左侧「设置」保存或删除独立 DeepSeek API Token。Token 保存在服务电脑数据目录的 `config/deepseek.token`，优先于 `DEEPSEEK_API_KEY`；没有独立凭证时沿用 dsh 当前模型配置。独立凭证使用 dsh 内置 DeepSeek 官方适配器的默认模型，作用于项目分析、灵感生成与项目实现，下一次调用生效，无需重启。此配置使用独立 provider，不改写 dsh 共享设置或凭证。
+
+保存采用原子替换与文件权限 `0600`，状态接口只返回是否启用及来源，不返回密钥。Token 文件及临时文件均已加入 `.gitignore`，静态服务不提供访问；演示模式不保存 Token。

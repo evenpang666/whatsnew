@@ -20,11 +20,11 @@ async function checkSyntax(path, signal) {
     child.once('error', reject); child.once('exit', code => code === 0 ? resolve() : reject(new Error(`文件语法不完整：${path.split('/').slice(-2).join('/')}\n${error}`)));
   });
 }
-export function makeProjectBuilder(ctx) {
+export function makeProjectBuilder(ctx, { modelSelection } = {}) {
   return async (idea, directory, signal, onProgress = () => {}) => {
     const written = new Set(); let finished = false;
     const root = resolve(directory); await mkdir(join(root, 'public'), { recursive: true });
-    await runStructuredAgent(ctx, { skill: 'whatsnew-build', signal, maxTokens: 18000, timeoutMs: 600000,
+    await runStructuredAgent(ctx, { skill: 'whatsnew-build', signal, modelSelection, maxTokens: 18000, timeoutMs: 600000,
       prompt: `用户已点击“要我帮你实现吗？”为以下构想撰写一个可运行的本地网页 MVP。所有输出仅写入宿主隔离目录；不要执行代码。需要文件：${PROJECT_FILES.join('、')}。逐文件调用 write_project_file，全部写好后调用 finish_project。\n${JSON.stringify(idea)}`,
       complete: () => finished, missing: () => `${PROJECT_FILES.filter(f => !written.has(f)).join('、') || 'finish_project 校验'}，按工具错误修复未通过的文件`,
       tools: [{ name: 'write_project_file', description: 'Write exactly one complete allowed file into the isolated project workspace. Can rewrite that file to correct validation errors.', parameters: { type: 'object', properties: { path: { type: 'string', enum: PROJECT_FILES }, content: { type: 'string' } }, required: ['path','content'], additionalProperties: false },

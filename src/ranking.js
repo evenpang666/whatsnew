@@ -1,3 +1,5 @@
+import { quantityHistory } from './star-history.js';
+
 export const PERIODS = { week: 7, month: 30 };
 export function windowDates(period = 'week', now = new Date()) {
   const days = PERIODS[period]; if (!days) throw new Error('时间维度支持周、月。');
@@ -5,9 +7,20 @@ export function windowDates(period = 'week', now = new Date()) {
   return Array.from({ length: days }, (_, i) => new Date(today - (days - i) * 86400000).toISOString().slice(0, 10));
 }
 export function calculateOverview(repos, histories, { period = 'week', mode = 'stars', now = new Date() } = {}) {
-  const dates = windowDates(period, now), values = {}, series = {};
+  const dates = windowDates(period, now), values = {}, series = {}, totals = {};
   for (const repo of repos) {
-    const history = histories[`${repo.id}:90`];
+    const recent = histories[`${repo.id}:90`], lifecycleHistory = histories[`${repo.id}:all`];
+    const history = recent?.to === now.toISOString().slice(0, 10) ? recent : lifecycleHistory || recent;
+    const lifecycle = histories[`${repo.id}:all`];
+    totals[repo.id] = new Map();
+    if (lifecycle?.metric === 'daily-new-stars' && lifecycle.to === now.toISOString().slice(0, 10)) {
+      try {
+        const cumulative = quantityHistory(lifecycle, PERIODS[period] + 1);
+        totals[repo.id] = new Map(cumulative.points.map(p => [p.date, p.stars]));
+        const created = lifecycle.createdAt.slice(0, 10);
+        for (const date of dates) if (date < created) totals[repo.id].set(date, 0);
+      } catch { /* Incomplete lifecycle history cannot produce cumulative counts. */ }
+    }
     const source = new Map((history?.metric === 'daily-new-stars' && history.to === now.toISOString().slice(0, 10) ? history.points : []).map(p => [p.date, p.stars]));
     const created = /^\d{4}-\d{2}-\d{2}T/.test(repo.createdAt || '') ? repo.createdAt.slice(0, 10) : null;
     // A repository cannot receive stars before its verified creation date.
@@ -28,6 +41,7 @@ export function calculateOverview(repos, histories, { period = 'week', mode = 's
   const categories = {};
   for (const r of repos) { const category = r.analyzed ? r.category || '待分类' : '待分析'; categories[category] = (categories[category] || 0) + 1; }
   const fetched = covered.map(r => histories[`${r.id}:90`]?.fetchedAt).filter(Boolean).sort();
-  return { mode, period, from: dates[0], to: dates.at(-1), values, ranks, trend, projectTrends: repos.map(r => ({ id: r.id, name: r.name, stars: r.stars, growth: values[r.id], complete: values[r.id] != null, points: dates.map(date => ({ date, stars: series[r.id].get(date) ?? null })) })), histogram, categories, covered: covered.length, total: repos.length, complete: covered.length === repos.length && repos.length > 0,
+  const cumulativeCovered = repos.filter(r => dates.every(date => totals[r.id].has(date))).length;
+  return { mode, period, from: dates[0], to: dates.at(-1), values, ranks, trend, projectTrends: repos.map(r => ({ id: r.id, name: r.name, stars: r.stars, growth: values[r.id], complete: values[r.id] != null, points: dates.map(date => ({ date, stars: series[r.id].get(date) ?? null })), totalPoints: dates.map(date => ({ date, stars: totals[r.id].get(date) ?? null })) })), histogram, categories, covered: covered.length, cumulativeCovered, total: repos.length, complete: covered.length === repos.length && repos.length > 0,
     fetchedAt: fetched[0] || null, scope: '累计 Star 前 100 项目内排序', metric: '完整 7／30 天的新增 Star（非净增长）', source: 'GitHub 官方 Star 历史，日界限沿用来源' };
 }

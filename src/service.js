@@ -11,11 +11,13 @@ import { LocalProjects } from './local-projects.js';
 import { emptyUsage, addUsage } from './usage.js';
 import { calculateOverview, PERIODS } from './ranking.js';
 import { isRepeatedIdea } from './idea-history.js';
-import { quantityHistory } from './star-history.js';
+import { quantityHistory, withCumulativeHistory, hasCumulativeHistory } from './star-history.js';
+import { DeepSeekToken } from './deepseek-token.js';
 
 export class WhatsNewService {
   constructor({ root = process.cwd(), github, analyze, inspire, buildProject, demo = false, localProjects } = {}) {
     this.root = resolve(root); this.github = github || new GitHubClient({root:this.root}); this.analyze = analyze; this.inspire = inspire; this.buildProject = buildProject; this.demo = demo;
+    this.deepseekCredentials = new DeepSeekToken(this.root);
     this.statePath = join(this.root, '.runtime', demo ? 'demo-state.json' : 'state.json');
     this.state = { repos: [], localRepos: [], downloads: {}, details: {}, starHistories: {}, inspiration: null, implementation: null, analyzedAt: null, operations: {}, usage: { analysis: null, inspiration: null } };
     this.local = localProjects || new LocalProjects(this.root); this.scanAt = 0; this.scanWarnings = [];
@@ -33,6 +35,15 @@ export class WhatsNewService {
     await mkdir(join(this.root, '.runtime'), { recursive: true });
     try { this.state = { ...this.state, ...JSON.parse(await readFile(this.statePath, 'utf8')) }; }
     catch (e) { if (e.code !== 'ENOENT') this.job.message = '本地缓存无法读取，将重新获取榜单。'; }
+    let migratedHistory = false;
+    for (const [key, history] of Object.entries(this.state.starHistories)) {
+      if (!key.endsWith(':all')) continue;
+      try {
+        const prepared = withCumulativeHistory(history);
+        if (prepared !== history) { this.state.starHistories[key] = prepared; migratedHistory = true; }
+      } catch { /* Incomplete cached history stays unknown and will be refetched. */ }
+    }
+    if (migratedHistory) await this.save();
     for (const operation of Object.values(this.state.operations)) if (operation.status === 'running') Object.assign(operation, { status: 'error', error: '上次操作被中断，请重试。', finishedAt: new Date().toISOString() });
     // Retire local analysis-run snapshots. They are never a historical source.
     delete this.state.history;
@@ -57,6 +68,24 @@ export class WhatsNewService {
     });
     return this.saveQueue;
   }
+  saveHistories() {
+    // Concurrent fetches share one durable write instead of serializing the
+    // growing lifecycle cache once for each response in the same burst.
+    this.historySaveTask ||= new Promise((resolve, reject) => {
+      setTimeout(() => { this.historySaveTask = null; this.save().then(resolve, reject); }, 20);
+    });
+    return this.historySaveTask;
+  }
+  overviewsAt(now = new Date()) {
+    const key = JSON.stringify([now.toISOString().slice(0,10), this.state.repos.map(r => [r.id,r.name,r.stars,r.analyzed,r.category,r.createdAt])]);
+    const sources = Object.entries(this.state.starHistories).map(([id,h]) => [id,h,h.to,h.fetchedAt,h.points,h.points?.length,h.cumulative]);
+    const cached = this.overviewCache;
+    if (cached?.key === key && sources.length === cached.sources.length && sources.every((entry,i) => entry.every((value,j) => value === cached.sources[i][j]))) return cached;
+    const growth = Object.fromEntries(Object.keys(PERIODS).map(period => [period, calculateOverview(this.state.repos, this.state.starHistories, {mode:'growth',period,now})]));
+    const ranks = Object.fromEntries([...this.state.repos].sort((a,b) => (b.stars ?? -1) - (a.stars ?? -1)).map((r,i) => [r.id,i+1]));
+    const stars = Object.fromEntries(Object.entries(growth).map(([period,overview]) => [period,{...overview,mode:'stars',ranks}]));
+    return this.overviewCache = {key,sources,growth,stars};
+  }
   snapshot() {
     const repos = [...this.state.repos];
     for (const [id, record] of Object.entries(this.state.downloads)) {
@@ -64,8 +93,7 @@ export class WhatsNewService {
     }
     const asOf = this.job.status === 'running' || this.rankingJob.status === 'running' ? new Date() : new Date(this.state.rankingAsOf || this.state.analyzedAt || Date.now());
     const now = Number.isFinite(asOf.getTime()) ? asOf : new Date();
-    const overview = calculateOverview(this.state.repos, this.state.starHistories, { mode: this.mode, period: this.period, now });
-    const overviews = Object.fromEntries(Object.keys(PERIODS).map(period => [period, calculateOverview(this.state.repos, this.state.starHistories, { mode: 'growth', period, now })]));
+    const cachedOverviews = this.overviewsAt(now), overview = cachedOverviews[this.mode][this.period], overviews = cachedOverviews.growth;
     return { demo: this.demo, visible: this.visible, job: this.job, analyzedAt: this.state.analyzedAt, cachedCatalog: this.visible && this.job.status !== 'running',
       repos: repos.filter(r => this.visible || this.state.downloads[r.id]).map(r => ({ ...r, readme: undefined, download: this.state.downloads[r.id] || null, operation: this.state.operations[r.id] || null, update: this.isUpdated(r.id), growth: overview.values[r.id] ?? null, growthRank: overview.ranks[r.id] ?? null })),
       downloadedCount: Object.keys(this.state.downloads).length,
@@ -223,31 +251,54 @@ export class WhatsNewService {
     if (!['stars', 'growth'].includes(mode) || !PERIODS[period]) throw new Error('排序支持累计 Star 或增星趋势；时间维度为周、月。');
     this.mode = mode; this.period = period;
   }
-  startRanking(mode = this.mode, period = this.period, refresh = false) {
+  startRanking(mode = this.mode, period = this.period, refresh = false, metric = 'growth') {
+    if (!['growth', 'total'].includes(metric)) throw new Error('图表统计类型无效。');
     this.setRanking(mode, period);
     if (!this.visible) throw new Error('请先点击一键分析。');
-    if (this.rankingJob.status === 'running') return this.rankingJob;
-    if (!refresh && this.rankingJob.status === 'complete' && calculateOverview(this.state.repos, this.state.starHistories, { period }).complete) return this.rankingJob;
+    if (this.rankingJob.status === 'running') {
+      if (metric !== this.rankingMetric || refresh) this.pendingRanking = { mode, period, refresh, metric };
+      return this.rankingJob;
+    }
+    const cachedOverview = this.overviewsAt().growth[period];
+    const fresh = this.state.repos.every(r => this.freshHistory(this.state.starHistories[`${r.id}:${metric === 'total' ? 'all' : 90}`]) || (metric === 'growth' && this.freshHistory(this.state.starHistories[`${r.id}:all`])));
+    if (!refresh && fresh && (metric === 'total' ? cachedOverview.cumulativeCovered === cachedOverview.total : cachedOverview.complete)) {
+      this.state.rankingAsOf = new Date().toISOString();
+      this.rankingJob = {status:'complete',metric,progress:this.state.repos.length,total:this.state.repos.length,errors:[],message:'已复用本地历史缓存，周／月可直接切换'};
+      return this.rankingJob;
+    }
     if (!this.github.starHistory) throw new Error('Star 历史服务不可用。');
     this.rankingController = new AbortController();
-    this.rankingJob = { status: 'running', progress: 0, total: this.state.repos.length, errors: [], message: '正在采集 GitHub 官方增星历史…' };
+    this.rankingMetric = metric;
+    this.rankingJob = { status: 'running', metric, progress: 0, total: this.state.repos.length, errors: [], message: metric === 'total' ? '正在更新累计 Star 历史（首次补全，后续增量更新；3 个项目并发）…' : '正在采集 GitHub 官方增星历史（3 个项目并发）…' };
     this.rankingTask = (async () => {
-      for (const repo of this.state.repos) {
-        this.rankingController.signal.throwIfAborted();
-        try { await this.history(repo.id, 90, refresh, this.rankingController.signal); this.rankingJob.progress++; }
-        catch (e) {
-          if (this.shutdownController.signal.aborted) throw e;
-          this.rankingJob.errors.push(`${repo.id}：${e.message}`);
-          if (e.rateLimited) break;
+      const repos = [...this.state.repos], controller = this.rankingController, quota = new AbortController();
+      const signal = AbortSignal.any([controller.signal, this.shutdownController.signal, quota.signal]);
+      let cursor = 0;
+      const worker = async () => {
+        while (!signal.aborted && cursor < repos.length) {
+          const repo = repos[cursor++];
+          try { await this.history(repo.id, metric === 'total' ? 'all' : 90, refresh, signal, metric); this.rankingJob.progress++; }
+          catch (e) {
+            if (controller.signal.aborted || this.closed) throw e;
+            if (!quota.signal.aborted) this.rankingJob.errors.push(`${repo.id}：${e.message}`);
+            if (e.rateLimited) quota.abort();
+          }
+          this.rankingJob.message = `采集 Star 历史 · ${this.rankingJob.progress}/${this.rankingJob.total}`;
         }
-        this.rankingJob.message = `采集 Star 历史 · ${this.rankingJob.progress}/${this.rankingJob.total}`;
-      }
-      const overview = calculateOverview(this.state.repos, this.state.starHistories, { period: this.period });
+      };
+      const results = await Promise.allSettled(Array.from({length:Math.min(3,repos.length)}, worker));
+      const failure = results.find(result => result.status === 'rejected'); if (failure) throw failure.reason;
+      controller.signal.throwIfAborted(); this.shutdownController.signal.throwIfAborted();
+      const overview = this.overviewsAt().growth[this.period];
       this.state.rankingAsOf = new Date().toISOString();
-      this.rankingJob.status = overview.complete ? 'complete' : 'partial';
-      this.rankingJob.message = overview.complete ? '官方历史已采集，周／月可直接切换' : `完整历史覆盖 ${overview.covered}/${overview.total}；缺失项目不参与增星排名`;
+      const covered = metric === 'total' ? overview.cumulativeCovered : overview.covered;
+      this.rankingJob.status = covered === overview.total ? 'complete' : 'partial';
+      this.rankingJob.message = covered === overview.total ? '官方历史已采集，周／月可直接切换' : `完整${metric === 'total' ? '生命周期' : '增星'}历史覆盖 ${covered}/${overview.total}；缺失数据不绘制曲线`;
       await this.save();
-    })().catch(e => { this.rankingJob.status = this.rankingController.signal.aborted || this.closed ? 'cancelled' : 'error'; this.rankingJob.message = e.message; });
+    })().catch(e => { this.rankingJob.status = this.rankingController.signal.aborted || this.closed ? 'cancelled' : 'error'; this.rankingJob.message = e.message; }).finally(() => {
+      const pending = this.pendingRanking; this.pendingRanking = null;
+      if (pending && !this.closed && !this.rankingController.signal.aborted) this.startRanking(pending.mode, pending.period, pending.refresh, pending.metric);
+    });
     return this.rankingJob;
   }
   beginOperation(id, type) {
@@ -355,21 +406,52 @@ export class WhatsNewService {
     if (repo.localOnly) throw new Error('本地项目没有 GitHub Star 历史。');
     if (![30,90,180,365,'all'].includes(days) || !['growth','total'].includes(metric)) throw new Error('历史范围或统计类型无效。');
     const range = metric === 'total' ? 'all' : days, key = `${id}:${range}`;
-    const cached = this.state.starHistories[key];
-    const fresh = !refresh && cached?.metric === 'daily-new-stars' && cached.to === new Date().toISOString().slice(0,10) && Date.now()-Date.parse(cached.fetchedAt)<6*3600000;
+    let cached = this.state.starHistories[key];
+    if (range === 'all' && cached && !hasCumulativeHistory(cached)) {
+      let prepared;
+      try { prepared = withCumulativeHistory(cached); } catch { /* Retry incomplete history from the source. */ }
+      if (prepared) { cached = prepared; this.state.starHistories[key] = cached; await this.saveHistories(); }
+    }
+    const lifecycle = this.state.starHistories[`${id}:all`];
+    if (range !== 'all' && !refresh && this.freshHistory(lifecycle) && hasCumulativeHistory(lifecycle)) return this.recentHistory(lifecycle,days);
+    const fresh = !refresh && this.freshHistory(cached) && (range !== 'all' || hasCumulativeHistory(cached));
     let data;
     if (fresh) data = cached;
     else {
       if (!this.historyTasks.has(key)) {
         const task = (async () => {
-          const result = await this.github.starHistory(repo,range,signal ? AbortSignal.any([signal,this.shutdownController.signal]) : this.shutdownController.signal);
-          this.state.starHistories[key] = result; await this.save(); return result;
+          const requestSignal = signal ? AbortSignal.any([signal,this.shutdownController.signal]) : this.shutdownController.signal;
+          let result = await this.github.starHistory(repo,range,requestSignal,new Date(),{previous:range === 'all' ? cached : undefined});
+          requestSignal.throwIfAborted();
+          if (range === 'all') {
+            try { result = withCumulativeHistory(result,cached); }
+            catch (error) { if (hasCumulativeHistory(cached)) throw error; }
+          }
+          const recentKey = `${id}:90`, oldRecent = this.state.starHistories[recentKey];
+          const recent = range === 'all' && hasCumulativeHistory(result) ? this.recentHistory(result,90) : null;
+          this.state.starHistories[key] = result;
+          if (recent) this.state.starHistories[recentKey] = recent;
+          try { await this.saveHistories(); }
+          catch (error) {
+            if (this.state.starHistories[key] === result) { if (cached) this.state.starHistories[key] = cached; else delete this.state.starHistories[key]; }
+            if (recent && this.state.starHistories[recentKey] === recent) { if (oldRecent) this.state.starHistories[recentKey] = oldRecent; else delete this.state.starHistories[recentKey]; }
+            throw error;
+          }
+          return result;
         })().finally(()=>this.historyTasks.delete(key));
         this.historyTasks.set(key,task);
       }
       data = await this.historyTasks.get(key);
     }
     return metric === 'total' ? quantityHistory(data,days) : data;
+  }
+  freshHistory(history) {
+    return history?.metric === 'daily-new-stars' && history.to === new Date().toISOString().slice(0,10) && Date.now()-Date.parse(history.fetchedAt)<6*3600000;
+  }
+  recentHistory(history,days) {
+    const { cumulative, ...metadata } = history;
+    const start = Math.max(0,history.points.length-days), points = history.points.slice(start);
+    return {...metadata,days,from:points[0]?.date || history.to,points};
   }
   async checkUpdates(onlyId) {
     if (this.gitTasks.size || this.activeDownloads.size) throw new Error('项目正在下载或进行 Git 操作，请稍后再检查更新。');

@@ -30,16 +30,19 @@ export async function startServer(service, { port = 3210, host = '0.0.0.0' } = {
         await service.scanDownloads();
         return json(res, 200, { ...service.snapshot(), token,
           githubAuth: await service.github.credentials?.status(),
+          deepseekAuth: await service.deepseekCredentials.status(),
           network: { localUrl: `http://127.0.0.1:${server.address().port}`, urls: host === '127.0.0.1' ? [] : addresses.map(ip => `http://${ip}:${server.address().port}`) } });
       }
       if (req.method === 'GET' && url.pathname === '/api/project') return json(res, 200, await service.detail(url.searchParams.get('id')));
       if (req.method === 'GET' && url.pathname === '/api/history') return json(res, 200, await service.history(url.searchParams.get('id'), url.searchParams.get('days') === 'all' ? 'all' : Number(url.searchParams.get('days') || 90), url.searchParams.get('refresh') === '1', undefined, url.searchParams.get('metric') || 'growth'));
-      if (req.method === 'POST' && url.pathname === '/api/github-token') {
-        if (!service.github.credentials) throw new Error('此运行模式不支持配置 GitHub Token。');
+      if (req.method === 'POST' && ['/api/github-token', '/api/deepseek-token'].includes(url.pathname)) {
+        if (service.demo) throw new Error('演示模式不保存 Token。');
+        const credentials = url.pathname === '/api/github-token' ? service.github.credentials : service.deepseekCredentials;
+        if (!credentials) throw new Error('此运行模式不支持配置 Token。');
         let body = ''; for await (const chunk of req) { body += chunk.toString(); if (body.length > 4096) throw new Error('Token 请求过长。'); }
         let input; try { input = JSON.parse(body); } catch { throw new Error('Token 请求格式无效。'); }
         if (!input || typeof input !== 'object') throw new Error('Token 请求格式无效。');
-        return json(res,200,input.remove === true ? await service.github.credentials.remove() : await service.github.credentials.save(input.token));
+        return json(res,200,input.remove === true ? await credentials.remove() : await credentials.save(input.token));
       }
       if (req.method === 'GET' && url.pathname === '/api/file') { await service.file(url.searchParams.get('id'), res); return; }
       if (req.method === 'POST' && url.pathname === '/api/analyze') return json(res, 202, service.startAnalysis(url.searchParams.get('resume') === '1'));
@@ -53,7 +56,7 @@ export async function startServer(service, { port = 3210, host = '0.0.0.0' } = {
       if (req.method === 'POST' && url.pathname === '/api/ranking/cancel') { service.rankingController?.abort(); return json(res, 200, { ok: true }); }
       if (req.method === 'POST' && url.pathname === '/api/updates') return json(res, 200, await service.checkUpdates(url.searchParams.get('id') || undefined));
       if (req.method === 'POST' && url.pathname === '/api/download') return json(res, 200, await service.download(url.searchParams.get('id')));
-      if (req.method === 'POST' && url.pathname === '/api/ranking') return json(res, 202, service.startRanking(url.searchParams.get('mode') || 'stars', url.searchParams.get('period') || 'week', url.searchParams.get('refresh') === '1'));
+      if (req.method === 'POST' && url.pathname === '/api/ranking') return json(res, 202, service.startRanking(url.searchParams.get('mode') || 'stars', url.searchParams.get('period') || 'week', url.searchParams.get('refresh') === '1', url.searchParams.get('metric') || 'growth'));
       if (req.method === 'POST' && ['/api/clone', '/api/pull'].includes(url.pathname)) return json(res, 200, await service.gitOperation(url.searchParams.get('id'), url.pathname.slice(5)));
       const assets = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/theme.js': ['theme.js', 'text/javascript; charset=utf-8'], '/chart-window.js': ['chart-window.js', 'text/javascript; charset=utf-8'] };
       if (req.method === 'GET' && assets[url.pathname]) {

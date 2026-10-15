@@ -7,6 +7,8 @@ node_modules/
 screenshots/
 config/github.token
 config/github.token.*.tmp
+config/deepseek.token
+config/deepseek.token.*.tmp
 
 # Local project packages and source archives
 *.zip

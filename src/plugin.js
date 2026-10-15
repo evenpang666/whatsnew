@@ -3,11 +3,16 @@ import { WhatsNewService } from './service.js';
 import { startServer } from './server.js';
 import { makeAnalyzer, makeInspirer } from './analyzer.js';
 import { makeProjectBuilder } from './project-builder.js';
+import { independentModel } from './deepseek-model.js';
 
 export const name = 'whatsnew';
-export const inject = ['agents', 'agentDefaultModel', 'sessions', 'tools'];
+export const inject = ['agents', 'agentDefaultModel', 'sessions', 'tools', 'llm'];
 export async function apply(ctx, config = {}) {
-  const service = new WhatsNewService({ root: config.root || process.cwd(), analyze: makeAnalyzer(ctx, { pricing: config.pricing }), inspire: makeInspirer(ctx, { pricing: config.pricing }), buildProject: makeProjectBuilder(ctx) });
+  const service = new WhatsNewService({ root: config.root || process.cwd() });
+  const modelSelection = independentModel(ctx, service.deepseekCredentials);
+  service.analyze = makeAnalyzer(ctx, { pricing: config.pricing, modelSelection });
+  service.inspire = makeInspirer(ctx, { pricing: config.pricing, modelSelection });
+  service.buildProject = makeProjectBuilder(ctx, { modelSelection });
   await service.init();
   const runtime = await startServer(service, { port: config.port ?? 3210, host: config.host || '0.0.0.0' });
   console.log(`\n  WhatsNew · GitHub 开源雷达\n  ${runtime.url}\n`);
