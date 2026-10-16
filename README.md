@@ -22,17 +22,12 @@ WhatsNew 是一个 **DeepSeek Harness（dsh web）原生 Cordis 插件**，用�
 
 ### 1. 准备环境
 
-- **Node.js 22+**：提供 Node.js 与 npm。
-- **DeepSeek Harness（dsh）**：在 `dsh web` 中配置可用模型。
+- 启动时检查 **Node.js 22+、npm、DeepSeek Harness（dsh）和 pnpm**，优先复用已有环境，缺失项自动补到项目 `.runtime`，不检查更新或升级。
+- 在 DSH Web 中配置可用模型；GitHub 和模型服务需要网络。
 - **Git（可选）**：克隆与拉取项目时需要。
 - 正式分析需要联网访问 GitHub 和模型服务；建议配置 GitHub Token 以提高 API 额度。
 
-```sh
-npm install -g @deepseek-ai/dsh
-dsh web
-```
-
-完成模型配置后，进入本项目目录。**无需安装本项目依赖或编译**。
+首次使用可直接双击下方启动文件，自动准备缺失环境。若需配置模型，补装后运行 `npm run dsh -- web`；系统已有 dsh 时也可直接运行 `dsh web`。**无需手工安装本项目依赖或编译**。
 
 ### 2. 启动 WhatsNew
 
@@ -46,7 +41,7 @@ npm start
 | --- | --- | --- |
 | `Start.bat` | `Start.command` | `WhatsNew.desktop` 或运行 `start.sh` |
 
-启动后自动打开 **[http://127.0.0.1:3210](http://127.0.0.1:3210)**。保持启动终端打开，按 `Ctrl+C` 停止。升级后先停止旧服务，再重新启动。
+启动后自动打开 **[http://127.0.0.1:3210](http://127.0.0.1:3210)**。保持启动终端打开，按 `Ctrl+C` 停止。可用 `npm run env:check` 单独检查和补齐环境；尚无 Node/npm 时先用双击启动文件。
 
 独立启动器在 `.runtime/dsh` 创建 profile，通过路径复用已有 dsh 模型配置与凭证。若自定义 provider 依赖额外插件，使用[安装进已有 dsh web](docs/installation.md#安装进已有-dsh-web)的方式。不要同时启动两个使用相同端口的实例。
 
@@ -107,7 +102,7 @@ npm start
 
 | 问题 | 处理方式 |
 | --- | --- |
-| 找不到 dsh 或模型不可用 | 确认 Node.js 22+，安装 dsh 并在 `dsh web` 配置模型；非标准安装可设置 `DSH_BIN`。 |
+| 找不到 dsh 或模型不可用 | 运行双击启动文件自动补齐环境，用 `npm run dsh -- web` 配置模型；非标准安装可设置 `DSH_BIN`。 |
 | 双击启动失败或页面打不开 | 从项目目录执行 `npm start` 查看终端错误；macOS 修复执行权限，Linux 首次选择「允许启动」。检查端口是否被占用。 |
 | GitHub 限流、历史采集不完整 | 配置有效 GitHub Token，或等待额度恢复后点击「重新采集历史」。 |
 | 分析中断、灵感按钮不可用 | 点击「继续分析」处理未通过项目；灵感需要 100 个不同仓库全部通过新版分析。 |

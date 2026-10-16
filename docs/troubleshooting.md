@@ -4,9 +4,9 @@
 
 ## 找不到 dsh 或模型不可用
 
-1. 在终端运行 `node --version`，确认版本至少为 22。
-2. 运行 `npm install -g @deepseek-ai/dsh` 安装 dsh，并确认当前终端可以运行 `dsh web`。
-3. 在 `dsh web` 中配置可用模型，再从项目目录运行 `npm start`。
+1. 使用 `start.sh` / `Start.command` / `Start.bat` 自动检查和补齐 Node.js/npm、DSH、pnpm；已有 npm 时也可运行 `npm run env:check`。
+2. 若补装失败，检查网络、项目目录写权限及终端下载错误后重试。启动器只补缺失项，不升级已有版本；已有安装损坏时会报错，需先修复对应工具。
+3. 运行 `npm run dsh -- web` 配置可用模型，再从项目目录运行 `npm start`。双击启动使用项目内 Node.js/npm 时，也可在其 `.runtime/node/current/bin`（Windows 为 `.runtime/node/current`）加入当前终端 PATH 后运行这些命令。
 4. 非标准安装可设置 `DSH_BIN` 为 dsh 的 `lib/bin.js` 绝对路径；已有配置不在默认 `~/.dsh` 时，设置 `DSH_HOME`。
 
 独立启动器通过路径复用模型设置和凭证；自定义 provider 若还依赖其他插件，请使用[安装进已有 dsh web](installation.md#安装进已有-dsh-web)的方式保留完整配置树。已验证运行时和兼容性说明见[安装文档](installation.md)。

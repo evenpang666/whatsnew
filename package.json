@@ -12,11 +12,13 @@
     "./locale/*.json": "./locale/*.json"
   },
   "bin": {
-    "whatsnew": "scripts/launch.mjs"
+    "whatsnew": "scripts/environment.mjs"
   },
   "scripts": {
-    "start": "node scripts/launch.mjs",
-    "dsh:register": "node scripts/register-plugin.mjs",
+    "start": "node scripts/environment.mjs",
+    "env:check": "node scripts/environment.mjs --check",
+    "dsh": "node scripts/environment.mjs --dsh",
+    "dsh:register": "node scripts/environment.mjs --register",
     "demo": "node scripts/demo.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "node scripts/check.mjs"

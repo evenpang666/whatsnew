@@ -4,7 +4,7 @@ import { readFile, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { findDsh } from './dsh-runtime.mjs';
+import { findDsh, ensureEnvironment } from './dsh-runtime.mjs';
 
 const packageName = 'dsh-whatsnew';
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -40,6 +40,9 @@ export async function registerWhatsnew({ env = process.env, root = packageRoot,
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  try { await registerWhatsnew(); }
+  try {
+    const runtime = await ensureEnvironment();
+    await registerWhatsnew({ env: runtime.env, locate: async () => runtime.dsh });
+  }
   catch (error) { console.error(error.message); process.exitCode = 1; }
 }

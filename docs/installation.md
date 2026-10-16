@@ -4,16 +4,23 @@
 
 ## 环境与独立启动
 
-先安装 **Node.js 22+** 和 **dsh**，并在 `dsh web` 中配置可用模型：
+可直接使用下方启动文件。启动器检查 **Node.js 22+、npm、dsh、pnpm**，优先复用已有可运行版本，只补齐缺失项，不查询新版、不运行升级命令，也不替换全局安装。
+
+缺少兼容 Node.js/npm 时，Windows、macOS、Linux 启动文件会下载项目内运行环境，并校验官方 SHA-256；已有兼容环境直接复用。缺少 DSH 或 pnpm 时通过 npm 补装到 `.runtime/tools`。固定补装版本见 `scripts/runtime-versions.json`：Node.js 22.23.3、DSH 0.2.0-rc.2、pnpm 12.3.4；已有 Web profile 要求特定 pnpm 时，优先复用匹配的大版本，否则并列补装该 profile 指定版本，并沿用其 store 路径。
+
+首次补装需要联网；Linux/macOS 需有 `curl` 或 `wget`、`tar` 和 SHA-256 工具。自动 Node.js 下载支持 x64、arm64；其他架构需自行提供兼容 Node.js/npm。环境完整时检查只运行本机版本命令，启动不因存在新版而下载。
+
+已有 Node.js/npm 时可单独检查、补齐环境：
 
 ```sh
-npm install -g @deepseek-ai/dsh
-dsh web
+npm run env:check
+# 打开已有或项目内补装的 DSH，配置模型
+npm run dsh -- web
 ```
 
 升级已有运行实例时，先关闭旧启动终端或停止旧 dsh web 服务，再重新启动。
 
-然后在本项目文件夹内双击：
+在本项目文件夹内双击：
 
 | 系统 | 启动文件 |
 | --- | --- |
