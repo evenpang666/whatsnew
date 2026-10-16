@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { findDsh, ensureEnvironment } from './dsh-runtime.mjs';
+import { registrationCurrent, rememberRegistration } from './dsh-version.mjs';
 
 const packageName = 'dsh-whatsnew';
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -27,22 +28,23 @@ function execute(command, args, options) {
 }
 
 export async function registerWhatsnew({ env = process.env, root = packageRoot,
-  home = resolve(env.DSH_HOME || join(homedir(), '.dsh')), locate = findDsh, run = execute, log = console.log } = {}) {
+  home = resolve(env.DSH_HOME || join(homedir(), '.dsh')), locate = findDsh, run = execute, log = console.log, version } = {}) {
   root = resolve(root);
-  if (await whatsnewInstalled(home, root)) { log('WhatsNew 已注册到 DSH Web 插件库。'); return; }
+  if (await whatsnewInstalled(home, root) && registrationCurrent(join(home, 'profiles/web'), packageName, version)) { log('WhatsNew 已注册到 DSH Web 插件库。'); return; }
   const cli = await locate(env);
   log('正在将 WhatsNew 注册到 DSH Web 插件库…');
   // Let DSH maintain dependencies and bundle selections, preserving other plugins.
   await run(process.execPath, [cli, 'plugin', '--profile', 'web', 'add', `link:${root.replaceAll('\\', '/')}`],
     { cwd: root, env: { ...env, DSH_HOME: home } });
   if (!await whatsnewInstalled(home, root)) throw new Error('DSH 未完成 WhatsNew bundle 注册，请检查插件安装日志。');
+  rememberRegistration(join(home, 'profiles/web'), packageName, version);
   log('WhatsNew 已注册。重新启动 dsh web 后可在插件库查看名称、简介与 logo，并看到加载日志。');
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     const runtime = await ensureEnvironment();
-    await registerWhatsnew({ env: runtime.env, locate: async () => runtime.dsh });
+    await registerWhatsnew({ env: runtime.env, locate: async () => runtime.dsh, version: runtime.version });
   }
   catch (error) { console.error(error.message); process.exitCode = 1; }
 }

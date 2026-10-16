@@ -4,6 +4,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
+import { ensureDshVersion } from './dsh-version.mjs';
 
 export const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 export const versions = JSON.parse(await readFile(new URL('./runtime-versions.json', import.meta.url), 'utf8'));
@@ -127,10 +128,10 @@ async function profileTools(env) {
 }
 
 export async function ensureEnvironment({ root = projectRoot, env = process.env, locateDsh = findDsh, locateNpm = findNpm,
-  inspect = versionOf, install = installTool, log = console.log } = {}) {
+  inspect = versionOf, install = installTool, upgrade = ensureDshVersion, log = console.log } = {}) {
   if (Number(process.versions.node.split('.')[0]) < 22) throw new Error('需要 Node.js 22+，请运行 start.sh / Start.bat 自动补齐项目运行环境。');
   env = { ...env, PATH: [dirname(process.execPath), ...pathDirs(env)].join(delimiter), npm_config_update_notifier: 'false', PNPM_DISABLE_SELF_UPDATE_CHECK: '1' };
-  log(`[环境] 检查 Node.js ${process.versions.node}、npm、DSH 和 pnpm（只补缺失项，不检查更新）`);
+  log(`[环境] 检查 Node.js ${process.versions.node}、npm、DSH 最低版本和 pnpm`);
   const npm = await locateNpm(env);
   log(`[环境] 复用 npm ${await inspect(npm, env)}`);
   let dsh;
@@ -143,7 +144,9 @@ export async function ensureEnvironment({ root = projectRoot, env = process.env,
     dsh = dshEntry(directory);
     log('[环境] 首次安装后请配置模型：npm run dsh -- web');
   }
-  log(`[环境] 复用 DSH ${await inspect(dsh, env)}`);
+  const checked = await upgrade({ cli: dsh, version: await inspect(dsh, env), npm, env, log });
+  dsh = checked.cli;
+  log(`[环境] 复用 DSH ${checked.version}`);
   const metadata = await profileTools(env);
   const required = metadata.packageManager?.match(/^pnpm@(\d+\.\d+\.\d+(?:-[\w.-]+)?)/)?.[1];
   const directory = join(root, '.runtime/tools', `pnpm-${required || versions.pnpm}`);
@@ -171,5 +174,5 @@ export async function ensureEnvironment({ root = projectRoot, env = process.env,
     env.npm_config_store_dir = store; env.PNPM_CONFIG_STORE_DIR = store;
   }
   log(`[环境] 复用 pnpm ${pnpmVersion}；WhatsNew 无需额外项目依赖或编译`);
-  return { dsh, npm, pnpm, env };
+  return { dsh, version: checked.version, npm, pnpm, env };
 }

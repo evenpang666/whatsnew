@@ -39,7 +39,7 @@ try {
     const runtime = await runtimeModule.ensureEnvironment();
     if (args[0] === '--register') {
       const { registerWhatsnew } = await import('./register-plugin.mjs');
-      await registerWhatsnew({ env: runtime.env, locate: async () => runtime.dsh });
+      await registerWhatsnew({ env: runtime.env, locate: async () => runtime.dsh, version: runtime.version });
     } else process.exitCode = await run(process.execPath, [runtime.dsh, ...args.slice(1)], runtime.env);
   } else await import('./launch.mjs');
 } catch (error) { console.error(error.message); process.exitCode = 1; }

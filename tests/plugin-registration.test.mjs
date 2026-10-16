@@ -24,19 +24,22 @@ test('registration uses the official Web bundle installer and is idempotent', as
   await writeFile(join(profile, 'package.json'), JSON.stringify(manifest));
   await writeFile(join(profile, 'cordis.patch.yml'), '# preserved user configuration\n');
   let calls = 0;
-  const options = { home, root, env: { CUSTOM: 'preserved' }, locate: async () => '/dsh/bin.js', log() {},
+  const options = { home, root, version: '0.2.0-rc.2', env: { CUSTOM: 'preserved' }, locate: async () => '/dsh/bin.js', log() {},
     async run(command, args, options) {
       calls++;
       assert.equal(command, process.execPath);
       assert.deepEqual(args, ['/dsh/bin.js', 'plugin', '--profile', 'web', 'add', `link:${root.replaceAll('\\', '/').replace(/\/$/, '')}`]);
       assert.equal(options.env.DSH_HOME, home); assert.equal(options.env.CUSTOM, 'preserved');
       manifest.dependencies['dsh-whatsnew'] = `link:${root}`;
-      manifest.dsh.profile.bundles.push('dsh-whatsnew');
+      if (!manifest.dsh.profile.bundles.includes('dsh-whatsnew')) manifest.dsh.profile.bundles.push('dsh-whatsnew');
       await writeFile(join(profile, 'package.json'), JSON.stringify(manifest));
-      await symlink(root, join(profile, 'node_modules/dsh-whatsnew'), 'dir');
+      await symlink(root, join(profile, 'node_modules/dsh-whatsnew'), 'junction').catch(error => { if (error.code !== 'EEXIST') throw error; });
     } };
   await registerWhatsnew(options); await registerWhatsnew(options);
   assert.equal(calls, 1); assert.equal(await whatsnewInstalled(home, root), true);
+  await registerWhatsnew({ ...options, version: '0.2.0' });
+  await registerWhatsnew({ ...options, version: '0.2.0' });
+  assert.equal(calls, 2, 'a runtime change forces exactly one re-registration');
   assert.equal(await readFile(join(profile, 'cordis.patch.yml'), 'utf8'), '# preserved user configuration\n');
   assert.deepEqual(manifest.dsh.profile.bundles, ['existing', 'dsh-whatsnew']);
 });
@@ -44,7 +47,7 @@ test('registration uses the official Web bundle installer and is idempotent', as
 test('registration does not report success for a raw patch, stale link or incomplete install', async t => {
   const { home, profile } = await fixture(t);
   await writeFile(join(profile, 'package.json'), JSON.stringify({ dependencies: { 'dsh-whatsnew': 'link:/old' }, dsh: { profile: { bundles: ['dsh-whatsnew'] } } }));
-  await symlink(home, join(profile, 'node_modules/dsh-whatsnew'), 'dir');
+  await symlink(home, join(profile, 'node_modules/dsh-whatsnew'), 'junction');
   assert.equal(await whatsnewInstalled(home, root), false);
   await assert.rejects(registerWhatsnew({ home, root, locate: async () => '/dsh/bin.js', run: async () => {}, log() {} }), /未完成/);
 });
@@ -77,7 +80,7 @@ test('DSH plugin library resolves the installed bundle title, description, SVG a
   const { Context } = await import(pathToFileURL(require.resolve('@deepseek-ai/cordis')).href);
   const { PluginManager } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-plugin-manager')).href);
   const { home, profile } = await fixture(t);
-  await symlink(root, join(profile, 'node_modules/dsh-whatsnew'), 'dir');
+  await symlink(root, join(profile, 'node_modules/dsh-whatsnew'), 'junction');
   await writeFile(join(profile, 'package.json'), JSON.stringify({ dependencies: { 'dsh-whatsnew': `link:${root}` }, dsh: { profile: { bundles: ['dsh-whatsnew'] } } }));
   await writeFile(join(profile, 'cordis.patch.yml'), '[]\n');
   const ctx = new Context(); t.after(() => ctx.fiber.dispose());

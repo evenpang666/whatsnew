@@ -17,12 +17,12 @@ async function fixture(t) {
   return { root, env };
 }
 
-test('installed tools are reused even when older than the fallback; no installs or update queries', async t => {
+test('compatible DSH is reused without installs or update queries', async t => {
   const { root, env } = await fixture(t);
   const pnpm = join(root, `.runtime/tools/pnpm-${versions.pnpm}/node_modules/pnpm/bin/pnpm.cjs`);
   const calls = [];
   const runtime = await ensureEnvironment({ root, env, log() {}, locateNpm: async () => '/npm', locateDsh: async () => '/existing-dsh',
-    inspect: async cli => { calls.push(cli); return cli === '/npm' ? '10.0.0' : cli === pnpm ? '10.1.0' : '0.1.5-rc.2'; },
+    inspect: async cli => { calls.push(cli); return cli === '/npm' ? '10.0.0' : cli === pnpm ? '10.1.0' : versions.dsh; },
     install: async () => assert.fail('existing tools must not be upgraded') });
   assert.equal(runtime.dsh, '/existing-dsh'); assert.equal(runtime.pnpm, pnpm);
   assert.deepEqual(calls, ['/npm', '/existing-dsh', pnpm]);
@@ -58,7 +58,7 @@ test('pnpm matches the existing profile without changing its store or installed 
   const pnpmPath = join(root, '.runtime/tools/pnpm-10.5.2/node_modules/pnpm/bin/pnpm.cjs');
   let installed = false;
   const runtime = await ensureEnvironment({ root, env, log() {}, locateNpm: async () => '/npm', locateDsh: async () => '/dsh',
-    inspect: async cli => { if (cli === pnpmPath && !installed) throw missing(); return cli === pnpmPath ? '10.5.2' : cli === '/dsh' ? '0.1.5-rc.2' : '10.9.9'; },
+    inspect: async cli => { if (cli === pnpmPath && !installed) throw missing(); return cli === pnpmPath ? '10.5.2' : cli === '/dsh' ? versions.dsh : '10.9.9'; },
     install: async entry => { calls.push(entry); installed = true; } });
   assert.deepEqual(calls.map(item => [item.name, item.version]), [['pnpm', '10.5.2']]);
   assert.equal(runtime.env.npm_config_store_dir, '/existing/pnpm/store');

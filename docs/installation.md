@@ -4,7 +4,7 @@
 
 ## 环境与独立启动
 
-可直接使用下方启动文件。启动器检查 **Node.js 22+、npm、dsh、pnpm**，优先复用已有可运行版本，只补齐缺失项，不查询新版、不运行升级命令，也不替换全局安装。
+可直接使用下方启动文件。启动器检查 **Node.js 22+、npm、DSH ≥ 0.2.0-rc.2、pnpm**。已有 DSH 低于要求时，在 `$DSH_HOME/runtimes/web/versions/0.2.0-rc.2` 安装并校验目标版本，然后切换运行入口；四个插件共用此目录。符合要求的版本直接复用，不查询 `latest`，不降级新版。每次 DSH 版本变化后自动重新注册 Web 插件，注册成功后才记录版本。
 
 缺少兼容 Node.js/npm 时，Windows、macOS、Linux 启动文件会下载项目内运行环境，并校验官方 SHA-256；已有兼容环境直接复用。缺少 DSH 或 pnpm 时通过 npm 补装到 `.runtime/tools`。固定补装版本见 `scripts/runtime-versions.json`：Node.js 22.23.3、DSH 0.2.0-rc.2、pnpm 12.3.4；已有 Web profile 要求特定 pnpm 时，优先复用匹配的大版本，否则并列补装该 profile 指定版本，并沿用其 store 路径。
 

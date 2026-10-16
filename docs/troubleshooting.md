@@ -5,7 +5,7 @@
 ## 找不到 dsh 或模型不可用
 
 1. 使用 `start.sh` / `Start.command` / `Start.bat` 自动检查和补齐 Node.js/npm、DSH、pnpm；已有 npm 时也可运行 `npm run env:check`。
-2. 若补装失败，检查网络、项目目录写权限及终端下载错误后重试。启动器只补缺失项，不升级已有版本；已有安装损坏时会报错，需先修复对应工具。
+2. 若补装或升级失败，检查网络、项目及 `DSH_HOME` 写权限后重试。DSH 低于 0.2.0-rc.2 时自动准备目标版本并重新注册；下载失败保留原有环境，当前启动停止并提示错误。
 3. 运行 `npm run dsh -- web` 配置可用模型，再从项目目录运行 `npm start`。双击启动使用项目内 Node.js/npm 时，也可在其 `.runtime/node/current/bin`（Windows 为 `.runtime/node/current`）加入当前终端 PATH 后运行这些命令。
 4. 非标准安装可设置 `DSH_BIN` 为 dsh 的 `lib/bin.js` 绝对路径；已有配置不在默认 `~/.dsh` 时，设置 `DSH_HOME`。
 

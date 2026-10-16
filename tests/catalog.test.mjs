@@ -32,7 +32,27 @@ function histories(repos, now=new Date('2026-10-13T09:00:00Z')) {
   return Object.fromEntries(repos.map((r,i)=>[`${r.id}:90`,{metric:'daily-new-stars',to:now.toISOString().slice(0,10),fetchedAt:now.toISOString(),points:[...windowDates('month',now).map(date=>({date,stars:i+1})),{date:now.toISOString().slice(0,10),stars:100000}]}]));
 }
 test('LAN URLs only include 192.168 IPv4 addresses, excluding 10/172 and IPv6',()=>{
-  assert.deepEqual(lanAddresses({eth:[{family:'IPv4',internal:false,address:'192.168.2.3'},{family:'IPv4',internal:false,address:'192.168.2.3'},{family:'IPv4',internal:true,address:'127.0.0.1'},{family:'IPv6',internal:false,address:'::1'},{family:'IPv4',internal:false,address:'10.85.35.79'},{family:'IPv4',internal:false,address:'172.17.0.1'},{family:'IPv4',internal:false,address:'8.8.8.8'}]}),['192.168.2.3']);
+  assert.deepEqual(lanAddresses({eth0:[{family:'IPv4',internal:false,address:'192.168.2.3'},{family:'IPv4',internal:false,address:'192.168.2.3'},{family:'IPv4',internal:true,address:'127.0.0.1'},{family:'IPv6',internal:false,address:'::1'},{family:'IPv4',internal:false,address:'10.85.35.79'},{family:'IPv4',internal:false,address:'172.17.0.1'},{family:'IPv4',internal:false,address:'8.8.8.8'}]}),['192.168.2.3']);
+});
+
+test('LAN URLs retain Ethernet and exclude VMware, other virtual adapters and Wi-Fi',()=>{
+  const ipv4=address=>[{family:'IPv4',internal:false,address}];
+  assert.deepEqual(lanAddresses({
+    '以太网':ipv4('192.168.10.106'),
+    'Ethernet 2':ipv4('192.168.10.106'),
+    'VMware Network Adapter VMnet1':ipv4('192.168.112.1'),
+    'VMware Network Adapter VMnet8':ipv4('192.168.146.1'),
+    'vEthernet (Default Switch)':ipv4('192.168.20.1'),
+    'VirtualBox Host-Only Ethernet Adapter':ipv4('192.168.56.1'),
+    '以太网 虚拟':ipv4('192.168.30.1'),
+    'Wi-Fi':ipv4('192.168.10.107'),
+    'WLAN':ipv4('192.168.10.108'),
+    'tun0':ipv4('192.168.40.1'),
+  }),['192.168.10.106']);
+  assert.deepEqual(lanAddresses({'VMware Network Adapter VMnet1':ipv4('192.168.112.1')}),[]);
+  for(const name of ['以太网 2','Ethernet','eth0','eno1','ens33','enp3s0','enx001122334455','en0']) {
+    assert.deepEqual(lanAddresses({[name]:ipv4('192.168.2.3')}),['192.168.2.3']);
+  }
 });
 test('GitHub origin parsing excludes local, lookalike, credential leaks and unrelated hosts',()=>{
   for(const remote of ['https://github.com/a/b.git','git@github.com:a/b.git','ssh://git@github.com/a/b.git'])assert.equal(githubIdentity(remote),'a/b');

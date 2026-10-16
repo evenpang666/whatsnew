@@ -22,7 +22,7 @@ WhatsNew 是一个 **DeepSeek Harness（dsh web）原生 Cordis 插件**，用�
 
 ### 1. 准备环境
 
-- 启动时检查 **Node.js 22+、npm、DeepSeek Harness（dsh）和 pnpm**，优先复用已有环境，缺失项自动补到项目 `.runtime`，不检查更新或升级。
+- 启动时检查 **Node.js 22+、npm、DSH ≥ 0.2.0-rc.2 和 pnpm**。DSH 缺失或版本过低时自动准备目标版本，升级后重新注册 Web 插件；符合要求的新版直接复用。
 - 在 DSH Web 中配置可用模型；GitHub 和模型服务需要网络。
 - **Git（可选）**：克隆与拉取项目时需要。
 - 正式分析需要联网访问 GitHub 和模型服务；建议配置 GitHub Token 以提高 API 额度。
@@ -45,7 +45,7 @@ npm start
 
 独立启动器在 `.runtime/dsh` 创建 profile，通过路径复用已有 dsh 模型配置与凭证。若自定义 provider 依赖额外插件，使用[安装进已有 dsh web](docs/installation.md#安装进已有-dsh-web)的方式。不要同时启动两个使用相同端口的实例。
 
-要随现有 `dsh web` 一起加载，在本项目目录执行 `npm run dsh:register`，然后重新启动 `dsh web`。插件库会显示 **WhatsNew · GitHub 开源雷达**、简介和绿色 logo；终端会打印 `[DSH 插件] … 已加载` 以及本机、局域网访问地址。注册后直接使用 `dsh web` 启动即可。
+启动脚本会自动登记 Web 插件，也可执行 `npm run dsh:register`。重新启动 `dsh web` 后，插件库会显示 **WhatsNew · GitHub 开源雷达**、简介和绿色 logo；终端会打印 `[DSH 插件] … 已加载` 以及本机、局域网访问地址。
 
 ### 3. 开始探索
 

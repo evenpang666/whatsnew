@@ -5,12 +5,14 @@ import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { ensureEnvironment } from './dsh-runtime.mjs';
+import { registerWhatsnew } from './register-plugin.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.env.WHATSNEW_PORT || 3210);
 if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('WHATSNEW_PORT 必须是 1024–65535 的端口号。');
 const url = `http://127.0.0.1:${port}`;
 const runtime = await ensureEnvironment();
+await registerWhatsnew({ env: runtime.env, locate: async () => runtime.dsh, version: runtime.version });
 function openBrowser() {
   if (process.env.WHATSNEW_NO_OPEN) return;
   const command = process.platform === 'darwin' ? ['open', [url]] : process.platform === 'win32' ? ['rundll32', ['url.dll,FileProtocolHandler', url]] : ['xdg-open', [url]];
