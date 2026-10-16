@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">WhatsNew · GitHub 开源雷达</title>
+  <rect width="128" height="128" rx="34" fill="#273c28"/>
+  <path d="m22 44 8 43 20-31 7 31 22-43" fill="none" stroke="#e2f6b0" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="none" stroke="#e2f6b0" stroke-width="3" stroke-linecap="round">
+    <path d="M98 20v28M84 34h28M88 24l20 20M88 44l20-20"/>
+  </g>
+</svg>

@@ -1,18 +1,22 @@
 {
   "name": "dsh-whatsnew",
   "version": "0.6.1",
-  "description": "GitHub Top 100 discovery, analysis and downloads for DeepSeek Harness",
+  "description": "WhatsNew · GitHub 开源雷达：热门项目发现、趋势分析、源码下载与灵感实现，复用 DSH 默认模型与凭据。",
+  "icon": "./public/icon.svg",
   "type": "module",
   "main": "src/plugin.js",
   "exports": {
     ".": "./src/plugin.js",
-    "./cordis.patch.yml": "./cordis.patch.yml"
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "bin": {
     "whatsnew": "scripts/launch.mjs"
   },
   "scripts": {
     "start": "node scripts/launch.mjs",
+    "dsh:register": "node scripts/register-plugin.mjs",
     "demo": "node scripts/demo.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "node scripts/check.mjs"
@@ -28,6 +32,7 @@
     "cordis.patch.yml",
     "README.md",
     "docs",
+    "locale",
     "Start.command",
     "Start.bat",
     "start.sh",

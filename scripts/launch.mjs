@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile, access, realpath } from 'node:fs/promises';
-import { dirname, join, resolve, delimiter } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { findDsh } from './dsh-runtime.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 if (Number(process.versions.node.split('.')[0]) < 22) throw new Error('请升级到 Node.js 22 或更新版本。');
@@ -22,21 +23,6 @@ async function isReady() {
 }
 if (await isReady()) { openBrowser(); console.log(`已打开运行中的 WhatsNew：${url}`); process.exit(0); }
 
-async function findDsh() {
-  if (process.env.DSH_BIN) return realpath(process.env.DSH_BIN);
-  for (const item of (process.env.PATH || '').split(delimiter)) {
-    for (const name of process.platform === 'win32' ? ['dsh.cmd', 'dsh'] : ['dsh']) {
-      const path = join(item, name);
-      try {
-        await access(path); const real = await realpath(path);
-        if (process.platform !== 'win32') return real;
-        const bin = join(dirname(real), 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js');
-        await access(bin); return bin;
-      } catch {}
-    }
-  }
-  throw new Error('未找到 dsh。请先安装 Node.js 22+，然后运行 npm install -g @deepseek-ai/dsh，并在 dsh web 中配置模型。');
-}
 const dshBin = await findDsh();
 const originalHome = resolve(process.env.DSH_HOME || join(homedir(), '.dsh'));
 const localHome = join(root, '.runtime', 'dsh');

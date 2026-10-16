@@ -50,6 +50,8 @@ npm start
 
 独立启动器在 `.runtime/dsh` 创建 profile，通过路径复用已有 dsh 模型配置与凭证。若自定义 provider 依赖额外插件，使用[安装进已有 dsh web](docs/installation.md#安装进已有-dsh-web)的方式。不要同时启动两个使用相同端口的实例。
 
+要随现有 `dsh web` 一起加载，在本项目目录执行 `npm run dsh:register`，然后重新启动 `dsh web`。插件库会显示 **WhatsNew · GitHub 开源雷达**、简介和绿色 logo；终端会打印 `[DSH 插件] … 已加载` 以及本机、局域网访问地址。注册后直接使用 `dsh web` 启动即可。
+
 ### 3. 开始探索
 
 1. 打开左侧「设置」，保存独立 DeepSeek API Token（可选，未填写时沿用 dsh 模型），并按需配置 GitHub Token。

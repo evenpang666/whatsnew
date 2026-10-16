@@ -29,6 +29,24 @@ Linux 桌面环境可能需要在首次打开时选择“允许启动”。如�
 
 ## 安装进已有 dsh web
 
+在项目目录运行以下命令，将当前源码注册为 Web profile 的插件：
+
+```sh
+npm run dsh:register
+dsh web
+```
+
+注册使用 DSH 官方的 `plugin --profile web add link:项目绝对路径` 命令，可重复执行，保留其他插件和模型配置。使用 `DSH_HOME` 可指定现有 DSH 配置目录，`DSH_BIN` 可指定 dsh 入口文件。若 dsh web 已在运行，注册后重启原服务。
+
+在 DSH Web 插件库中可以看到 **WhatsNew · GitHub 开源雷达**、中英文简介和绿色 logo，并能管理该 bundle。每次插件成功加载后，终端会打印：
+
+```text
+[DSH 插件] WhatsNew · GitHub 开源雷达 (whatsnew) · 已加载
+[DSH 插件]   本机：http://127.0.0.1:3210
+```
+
+也可以打包安装到其他机器：
+
 ```sh
 npm pack
 dsh plugin --profile web add /绝对路径/dsh-whatsnew-0.6.1.tgz
@@ -37,6 +55,8 @@ dsh web
 
 插件随 dsh web 启动，探索页位于 **http://127.0.0.1:3210**，原 dsh 聊天页仍由它自己的端口提供。不要同时运行独立启动器和已安装的同端口插件。
 
-已验证的运行时：`@deepseek-ai/dsh 0.1.5-rc.2`、Node.js 22。dsh 仍在快速迭代，后续版本需要复核服务接口。
+未配置 `root` 时，插件使用自身所在的项目目录保存数据，与启动 `dsh web` 的工作目录无关。在 Web profile 的 `cordis.patch.yml` 中可用 `id: whatsnew` 的 `config` 覆盖 `root`、`port`（默认 3210）和 `host`。
+
+已验证的运行时：`@deepseek-ai/dsh 0.2.0-rc.2`、Node.js 22，包括插件库元数据读取和真实 DSH Web 启动加载。
 
 更多环境变量与局域网设置见[配置与费用](configuration.md)，启动异常见[问题处理](troubleshooting.md)。

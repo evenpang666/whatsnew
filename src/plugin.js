@@ -4,19 +4,20 @@ import { startServer } from './server.js';
 import { makeAnalyzer, makeInspirer } from './analyzer.js';
 import { makeProjectBuilder } from './project-builder.js';
 import { independentModel } from './deepseek-model.js';
+import { fileURLToPath } from 'node:url';
+
+const packageRoot = fileURLToPath(new URL('../', import.meta.url));
 
 export const name = 'whatsnew';
 export const inject = ['agents', 'agentDefaultModel', 'sessions', 'tools', 'llm'];
 export async function apply(ctx, config = {}) {
-  const service = new WhatsNewService({ root: config.root || process.cwd() });
+  const service = new WhatsNewService({ root: config.root || packageRoot });
   const modelSelection = independentModel(ctx, service.deepseekCredentials);
   service.analyze = makeAnalyzer(ctx, { pricing: config.pricing, modelSelection });
   service.inspire = makeInspirer(ctx, { pricing: config.pricing, modelSelection });
   service.buildProject = makeProjectBuilder(ctx, { modelSelection });
   await service.init();
   const runtime = await startServer(service, { port: config.port ?? 3210, host: config.host || '0.0.0.0' });
-  console.log(`\n  WhatsNew · GitHub 开源雷达\n  ${runtime.url}\n`);
-  for (const url of runtime.lanUrls) console.log(`  局域网访问：${url}`);
   ctx.on('dispose', () => runtime.close());
   const output = { schema: {}, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }] };
   const register = (toolName, description, parameters, execute) => ctx.tools.register({ name: toolName, description, parameters, output, execute });
@@ -34,4 +35,10 @@ export async function apply(ctx, config = {}) {
     if (!repo) throw new Error('项目不在当前 Top 100 榜单。');
     return { ...repo, ...await service.github.detail(repo, exec.signal) };
   });
+  console.log([
+    '[DSH 插件] WhatsNew · GitHub 开源雷达 (whatsnew) · 已加载',
+    `[DSH 插件]   本机：${runtime.url}`,
+    ...runtime.lanUrls.map(url => `[DSH 插件]   局域网：${url}`),
+    '[DSH 插件]   生成：默认复用 DSH 模型与凭据，可在设置中配置独立 DeepSeek Token',
+  ].join('\n'));
 }
