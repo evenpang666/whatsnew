@@ -127,3 +127,7 @@ npm start
 npm run check
 npm test
 ```
+
+## 许可证
+
+本项目采用 [MIT License](LICENSE)。第三方依赖遵循各自许可证。
